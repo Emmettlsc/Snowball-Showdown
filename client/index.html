@@ -12,6 +12,7 @@
 <!-- Begin typing your web page here. -->
 <!-- The following code embeds a WebGL canvas panel, loads certain scene(s), and displays panel(s) of their controls.-->
 <div class="canvas-widget" id="main-canvas"></div>
+<div class="scope"></div>
 <script type=module>
     // ********************* THE ENTRY POINT OF YOUR WHOLE PROGRAM STARTS HERE *********************
     // Indicate which element on the page you want the Canvas_Widget to replace with a 3D WebGL area:
@@ -32,6 +33,19 @@ canvas {
     bottom: 0;
     width: 100vw !important;
     height: 100vh !important;
+    z-index:10;
+}
+.scope {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border-radius: 100%;
+    width: 6px;
+    height: 6px;
+    border: 1px solid red;
+    line-height: 6px;
+    transform: translate(-50%, -50%);
+    z-index:20;
 }
 </style>
 

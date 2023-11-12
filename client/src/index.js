@@ -2,6 +2,13 @@ import {defs, tiny} from '../examples/common.js';
 
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
+//outsource to constants
+const MIN_MAP_X = -50
+const MAX_MAP_X = 50
+const MIN_MAP_Z = -50
+const MAX_MAP_Z = 50
+const WALL_BOUNCE_FACTOR = 0.5
+const FLOOR_BOUNCE_FACTOR = 0.8
 
 export class Body {
     // **Body** can store and update the properties of a 3D body that incrementally
@@ -219,7 +226,20 @@ export class Main_Demo extends Simulation {
         this.requestThrowSnowball = false
         this.camera_transform = Mat4.identity()
 
-        window.addEventListener('keydown', (e) => this.handleKeydown(e))
+        window.addEventListener('keydown', e => this.handleKeydown(e))
+        window.addEventListener('keyup', e => this.handleKeyup(e))
+        window.addEventListener('mousedown', e => this.handleMousedown(e))
+        window.addEventListener('mousemove', e => this.handleMousemove(e))
+        window.addEventListener('mouseup', e => this.handleKeyup({ key: 'mouse' }))
+
+        this.moveActive = false
+        this.downKeys = {}
+        this.mouseMovementAmt = [0, 0]
+        this.cameraRotation = [0, 0]
+        this.userMovementAmt = [0, 0, 0]
+        this.userPos = [0, 0, 40]
+        this.userVel = [0, 0, 0]
+        this.userCanJump = true
     }
 
     handleKeydown(e) {
@@ -227,6 +247,55 @@ export class Main_Demo extends Simulation {
             console.log('throwing snowball')
             this.requestThrowSnowball = true
         }
+        if (e.key === 'p') {
+            const canvas = document.getElementsByTagName('canvas')?.[0]
+            canvas.requestFullscreen()
+        }
+        if (['w', 'a', 's', 'd', ' '].includes(e.key))
+            this.downKeys[e.key] = true
+    }
+
+    handleKeyup(e) {
+        if (['w', 'a', 's', 'd', ' ', 'mouse'].includes(e.key) && this.downKeys[e.key]) {
+            delete this.downKeys[e.key]
+        }
+    }
+
+    handleMousedown(e) {
+        this.moveActive = true
+        this.downKeys['mouse'] = true
+        e.target?.requestPointerLock()
+    }
+
+    handleMousemove(e) {
+        if (!this.moveActive)
+            return
+        // console.log(e.movementX, e.movementY)
+        this.mouseMovementAmt[0] += e.movementX
+        this.mouseMovementAmt[1] += e.movementY
+    }
+
+    checkAllDownKeys() {
+        if (this.downKeys['w'] || this.downKeys['s'])
+            this.userMovementAmt[1] = (this.downKeys['w'] ? 1 : -1)
+        else 
+            this.userMovementAmt[1] = 0
+
+        if (this.downKeys['a'] && !this.downKeys['d'])
+            this.userMovementAmt[0] = -1
+        else if (this.downKeys['d'] && !this.downKeys['a'])
+            this.userMovementAmt[0] = 1
+        else
+            this.userMovementAmt[0] = 0
+
+        if (this.downKeys[' '] && this.userCanJump) {
+            this.userMovementAmt[2] = 1
+            this.userCanJump = false
+            setTimeout(() => this.userCanJump = true, 700)
+        }
+
+        if (this.downKeys['mouse'])
+            this.requestThrowSnowball = true
     }
 
     random_color() {
@@ -234,9 +303,6 @@ export class Main_Demo extends Simulation {
     }
 
     update_state(dt) {
-        // update_state():  Override the base time-stepping code to say what this particular
-        // scene should do to its bodies every frame -- including applying forces.
-        // Generate additional moving bodies if there ever aren't enough:
         if (this.bodies.length === 0) {
             this.bodies.push(
                 new Body(
@@ -249,21 +315,10 @@ export class Main_Demo extends Simulation {
                     0
                 )
             );
-            // this.bodies.push(
-            //     new Body(
-            //         this.data.random_shape(), 
-            //         this.random_color(), 
-            //         vec3(1, 1 + Math.random(), 1)
-            //     ).emplace(
-            //         Mat4.translation(...vec3(0, 20, 0).randomized(0)),
-            //         vec3(0, 0, 0), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
-            //         Math.random()
-            //     )
-            // );
         }
 
         if (this.requestThrowSnowball) {
-            const s = 20
+            const s = 40
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
             console.log(this.camera_transform)
             this.requestThrowSnowball = false
@@ -273,7 +328,7 @@ export class Main_Demo extends Simulation {
                     this.snowballMtl, 
                     vec3(0.7, 0.7, 0.7)
                 ).emplace(
-                    this.camera_transform.times(Mat4.translation(...userDirection.map(v => 2 * v))),
+                    Mat4.translation(...userDirection.map(v => 5 * v)).times(this.camera_transform),
                     vec3(...userDirection.map(v => s * v)), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
                     0
                 )
@@ -288,7 +343,11 @@ export class Main_Demo extends Simulation {
             b.linear_velocity[1] += dt * -9.8;
             // If about to fall through floor, reverse y velocity:
             if (b.center[1] < -1 && b.linear_velocity[1] < 0)
-                b.linear_velocity[1] *= -.8;
+                b.linear_velocity[1] *= -FLOOR_BOUNCE_FACTOR;
+            if ((b.center[0] < MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > MAX_MAP_X && b.linear_velocity[0] > 0))
+                b.linear_velocity[0] *= -WALL_BOUNCE_FACTOR;
+            if ((b.center[2] < MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > MAX_MAP_Z && b.linear_velocity[2] > 0))
+                b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
 
             if (targetCollide)
                 continue
@@ -312,7 +371,10 @@ export class Main_Demo extends Simulation {
             // this.children.push(new defs.Program_State_Viewer());
         }
         program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 1, 500);
-        program_state.lights = [new Light(vec4(0, -5, -10, 1), color(1, 1, 1, 1), 100000)];
+        program_state.lights = [
+            new Light(vec4(0, -100, 0, 1), color(0, 0, 1, 1), 10000),
+            new Light(vec4(0, 160, 0, 1), color(1, 1, 1, 1), 100000)
+        ];
         // Draw the ground
         this.shapes.square.draw(
             context, program_state, 
@@ -321,8 +383,85 @@ export class Main_Demo extends Simulation {
                 .times(Mat4.scale(50, 50, 1)),
             this.material.override(this.data.textures.earth)
         )
-        // this.shapes.square.draw(context, program_state, Mat4.translation(0,0,0), this.material)
+        // border walls
+        for (let i = 0; i < 4; i++) {
+            const translation = [
+                [-50, 0, 0],
+                [50, 0, 0],
+                [0, 0, -50],
+                [0, 0, 50]
+            ][i]
+            const rotation = (i < 2 ? [0, 1, 0] : [0, 0, 1])
+            this.shapes.square.draw(
+                context, program_state,
+                Mat4.translation(...translation)
+                    .times(Mat4.rotation(Math.PI / 2, ...rotation))
+                    .times(Mat4.scale(50, 50, 1)),
+                this.snowballMtl.override({ color: color(0.2, 0.2, 0.2, 1) })
+            )
+        }
+
+        // outsource to contants
+        const USER_ROTATION_SPEED_X = 0.005
+        const USER_ROTATION_SPEED_Y = 0.005
+        const USER_FWD_MOVE_SPEED = 0.6
+        const USER_SIDE_MOVE_SPEED = 0.3
+        const USER_BACK_MOVE_SPEED = 0.3
+
+        this.checkAllDownKeys()
+
+        this.cameraRotation[0] += USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
+        this.cameraRotation[1] += USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
+        this.mouseMovementAmt = [0, 0]
+        
+        // calculate new user position
+        if (this.userMovementAmt[0]) {
+            this.userPos[0] += this.userMovementAmt[0] * USER_SIDE_MOVE_SPEED * Math.cos(this.cameraRotation[0]);
+            this.userPos[2] += this.userMovementAmt[0] * USER_SIDE_MOVE_SPEED * Math.sin(this.cameraRotation[0]);
+        }
+        if (this.userMovementAmt[1]) {
+            const speed = this.userMovementAmt[1] === 1 ? USER_FWD_MOVE_SPEED : USER_BACK_MOVE_SPEED
+            this.userPos[0] -= this.userMovementAmt[1] * speed * Math.cos(this.cameraRotation[0] + Math.PI / 2);
+            this.userPos[2] -= this.userMovementAmt[1] * speed * Math.sin(this.cameraRotation[0] + Math.PI / 2);
+        }
+        if (this.userMovementAmt[2]) {
+            this.userVel[1] += 0.15
+            this.userMovementAmt[2] = 0
+        }
+        else this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
+
+        // check if user is out of bounds
+        if (this.userPos[0] < MIN_MAP_X)
+            this.userPos[0] = MIN_MAP_X
+        else if (this.userPos[0] > MAX_MAP_X)
+            this.userPos[0] = MAX_MAP_X
+        if (this.userPos[2] < MIN_MAP_Z)
+            this.userPos[2] = MIN_MAP_Z
+        else if (this.userPos[2] > MAX_MAP_Z)
+            this.userPos[2] = MAX_MAP_Z
+        if (this.userPos[1] < -1 && this.userVel[1] < 0 && this.userVel[1] > -0.05) {
+            this.userPos[1] = -1
+            this.userVel[1] = 0
+        }
+        else if (this.userPos[1] < -1 && this.userVel[1] < 0)
+            this.userVel[1] *= -.3;
+
+        this.userPos[1] += this.userVel[1]
+        // this.userMovementAmt = [0, 0]
+
+        program_state.camera_transform = Mat4.rotation(-this.cameraRotation[0], 0, 1, 0)
+            .times(Mat4.rotation(-this.cameraRotation[1], 1, 0, 0));
+        program_state.camera_inverse = Mat4.rotation(+this.cameraRotation[1], 1, 0, 0)
+            .times(Mat4.rotation(+this.cameraRotation[0], 0, 1, 0));
+
+        program_state.camera_transform.pre_multiply(Mat4.translation(...this.userPos));
+        program_state.camera_inverse.post_multiply(Mat4.translation(...this.userPos.map(v => -v)));
+
+        // program_state.camera_transform = (Mat4.rotation(-this.cameraRotation[1], 1, 0, 0));
+        // program_state.camera_inverse = (Mat4.rotation(+this.cameraRotation[1], 1, 0, 0));
+    
+                    
+        // console.log(program_state.camera_transform)
         this.camera_transform = program_state.camera_transform
-        console.log()
     }
 }
