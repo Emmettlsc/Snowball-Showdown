@@ -167,8 +167,8 @@ export class Main_Demo extends Simulation {
 
 
         //Initialize player class
-        let defaultFireVelocity = vec3(70, 70, 70);
-        this.player = new Player("Player1", 1.0, 0.5, defaultFireVelocity);
+        let defaultFireSpeed= vec3(70, 70, 70);
+        this.player = new Player("Player1", 1.0, 0.5, defaultFireSpeed);
     }
 
     handleKeydown(e) {
@@ -246,21 +246,15 @@ export class Main_Demo extends Simulation {
             );
         }
 
-        // if(this.requestThrowSnowball && !this.player.canFire()) // This is just for debugging
-        // {
-        //     // console.log("Player not allowed to fire");
-        //     this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
-        // }
-
-        if (this.requestThrowSnowball && this.player.canFire()) {
+         if (this.requestThrowSnowball && this.player.canFire()) {
             // const s = 70
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
             console.log(this.camera_transform)
             this.requestThrowSnowball = false
 
-            let snowballVelocity = vec3 (userDirection[0] * this.player.fireVelocity[0],
-                userDirection[1] * this.player.fireVelocity[1],
-                userDirection[2] * this.player.fireVelocity[2]);
+            let snowballVelocity = vec3 (userDirection[0] * this.player.fireSpeed[0],
+                userDirection[1] * this.player.fireSpeed[1],
+                userDirection[2] * this.player.fireSpeed[2]);
 
 
             this.bodies.push(
@@ -279,6 +273,10 @@ export class Main_Demo extends Simulation {
 
             this.player.indicateFired();
         }
+         else if(this.requestThrowSnowball && !this.player.canFire()) {
+             // console.log("Player not allowed to fire");
+             this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
+         }
 
         this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
         let targetCollide = false
