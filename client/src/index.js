@@ -1,6 +1,7 @@
 import {defs, tiny} from '../examples/common.js';
 import {Body} from './body.js'
 import {Snowball} from './snowball.js'
+import {Player} from "./player.js";
 
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
@@ -162,11 +163,17 @@ export class Main_Demo extends Simulation {
         this.userPos = [0, 0, 40]
         this.userVel = [0, 0, 0]
         this.userCanJump = true
+
+
+
+        //Initialize player class
+        let defaultFireVelocity = vec3(70, 70, 70);
+        this.player = new Player("Player1", 1.0, 0.5, defaultFireVelocity);
     }
 
     handleKeydown(e) {
         if (e.key === 'q') {
-            console.log('throwing snowball')
+            console.log('pressed snowball key')
             this.requestThrowSnowball = true
         }
         if (e.key === 'p') {
@@ -239,23 +246,38 @@ export class Main_Demo extends Simulation {
             );
         }
 
-        if (this.requestThrowSnowball) {
-            const s = 70
+        // if(this.requestThrowSnowball && !this.player.canFire()) // This is just for debugging
+        // {
+        //     // console.log("Player not allowed to fire");
+        //     this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
+        // }
+
+        if (this.requestThrowSnowball && this.player.canFire()) {
+            // const s = 70
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
             console.log(this.camera_transform)
             this.requestThrowSnowball = false
+
+            let snowballVelocity = vec3 (userDirection[0] * this.player.fireVelocity[0],
+                userDirection[1] * this.player.fireVelocity[1],
+                userDirection[2] * this.player.fireVelocity[2]);
+
+
             this.bodies.push(
                 new Snowball(
                     this.data.shapes.ball, 
                     this.snowballMtl, 
                     vec3(0.7, 0.7, 0.7),
-                    "player1"
+                    this.player.getPlayerID()
                 ).emplace(
                     Mat4.translation(...userDirection.map(v => 5 * v)).times(this.camera_transform),
-                    vec3(...userDirection.map(v => s * v)), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
+                    snowballVelocity, // vec3(0, -1, 0).randomized(2).normalized().times(3),
                     0
                 )
             )
+            console.log("Fired");
+
+            this.player.indicateFired();
         }
 
         this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
