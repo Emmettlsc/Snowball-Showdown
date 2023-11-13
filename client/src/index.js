@@ -167,8 +167,9 @@ export class Main_Demo extends Simulation {
 
 
         //Initialize player class
-        let defaultFireSpeed= vec3(70, 70, 70);
-        this.player = new Player("Player1", 1.0, 0.5, defaultFireSpeed);
+        let defaultFireSpeed= vec3(0, 6, 70);
+        let defaultMoveSpeed = vec3(2, 1, 1);
+        this.player = new Player("Player1", defaultMoveSpeed, 0.5, defaultFireSpeed);
     }
 
     handleKeydown(e) {
@@ -252,9 +253,11 @@ export class Main_Demo extends Simulation {
             console.log(this.camera_transform)
             this.requestThrowSnowball = false
 
-            let snowballVelocity = vec3 (userDirection[0] * this.player.fireSpeed[0],
-                userDirection[1] * this.player.fireSpeed[1],
-                userDirection[2] * this.player.fireSpeed[2]);
+             const playerThrowSpeed = this.player.getFireSpeed();
+            let snowballVelocity = vec3 ( playerThrowSpeed[0],
+                playerThrowSpeed[1],
+                userDirection[2] * playerThrowSpeed[2]);
+            console.log("snowballVelocity: " + snowballVelocity);
 
 
             this.bodies.push(
@@ -270,11 +273,12 @@ export class Main_Demo extends Simulation {
                 )
             )
             console.log("Fired");
+             console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
 
             this.player.indicateFired();
         }
          else if(this.requestThrowSnowball && !this.player.canFire()) {
-             // console.log("Player not allowed to fire");
+             console.log("Player not allowed to fire. Fire rate is " + this.player.getFireRate());
              this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
          }
 
@@ -307,6 +311,7 @@ export class Main_Demo extends Simulation {
                 // Snowballs just disappear upon colliding with a cube
                 if(b.constructor.name === "Snowball")
                 {
+                    console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
                     this.bodies.splice(i, i);
                     i--;
                 }
@@ -362,9 +367,10 @@ export class Main_Demo extends Simulation {
         // outsource to contants
         const USER_ROTATION_SPEED_X = 0.005
         const USER_ROTATION_SPEED_Y = 0.005
-        const USER_FWD_MOVE_SPEED = 0.6
-        const USER_SIDE_MOVE_SPEED = 0.3
-        const USER_BACK_MOVE_SPEED = 0.3
+        const userMoveSpeed = this.player.getMoveSpeed()
+        const USER_FWD_MOVE_SPEED = userMoveSpeed[0]
+        const USER_SIDE_MOVE_SPEED = userMoveSpeed[1]
+        const USER_BACK_MOVE_SPEED = userMoveSpeed[2]
 
         this.checkAllDownKeys()
 
