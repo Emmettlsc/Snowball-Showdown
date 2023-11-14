@@ -13,6 +13,7 @@ const MAX_MAP_Z = 50
 const WALL_BOUNCE_FACTOR = 0.5
 const FLOOR_BOUNCE_FACTOR = 0.8
 
+const SNOWBALL_CHARGE_FACTOR = 5.0;
 
 export class Simulation extends Scene {
     // **Simulation** manages the stepping of simulation time.  Subclass it when making
@@ -170,12 +171,22 @@ export class Main_Demo extends Simulation {
         let defaultFireSpeed= vec3(0, 6, 70);
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.player = new Player("Player1", defaultMoveSpeed, 0.5, defaultFireSpeed);
+
+        this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
+        this.charging = false;
+
     }
 
     handleKeydown(e) {
         if (e.key === 'q') {
             console.log('pressed snowball key')
-            this.requestThrowSnowball = true
+
+            //TODO: save a state and charge the shot accordingly
+            if(this.charging) {
+                this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
+            }
+            if(!this.charging)
+                this.charging = true;
         }
         if (e.key === 'p') {
             const canvas = document.getElementsByTagName('canvas')?.[0]
@@ -189,6 +200,13 @@ export class Main_Demo extends Simulation {
         if (['w', 'a', 's', 'd', ' ', 'mouse'].includes(e.key) && this.downKeys[e.key]) {
             delete this.downKeys[e.key]
         }
+
+        //TODO: handle keyup of snowball key
+        if(e.key === 'q'){
+            this.charging = false;
+            this.requestThrowSnowball = true
+        }
+
     }
 
     handleMousedown(e) {
@@ -254,8 +272,8 @@ export class Main_Demo extends Simulation {
             this.requestThrowSnowball = false
 
              const playerThrowSpeed = this.player.getFireSpeed();
-            let snowballVelocity = vec3 ( playerThrowSpeed[0],
-                playerThrowSpeed[1],
+            let snowballVelocity = vec3 ( playerThrowSpeed[0] ,
+                playerThrowSpeed[1] + (SNOWBALL_CHARGE_FACTOR * this.chargeTime),
                 userDirection[2] * playerThrowSpeed[2]);
             console.log("snowballVelocity: " + snowballVelocity);
 
@@ -276,6 +294,7 @@ export class Main_Demo extends Simulation {
              console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
 
             this.player.indicateFired();
+            this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
         }
          else if(this.requestThrowSnowball && !this.player.canFire()) {
              console.log("Player not allowed to fire. Fire rate is " + this.player.getFireRate());
