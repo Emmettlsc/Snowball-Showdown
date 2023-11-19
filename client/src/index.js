@@ -2,6 +2,8 @@ import {defs, tiny} from '../examples/common.js';
 import {Body} from './body.js'
 import {Snowball} from './snowball.js'
 import {Player} from "./player.js";
+import {Particle_Shader} from "./particleshader.js";
+
 
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
@@ -135,6 +137,13 @@ export class Main_Demo extends Simulation {
             color: color(1, 1, 1, 1),
             ambient: 0.8, 
         })
+
+        this.snowballExplosionMtl = new Material(new Particle_Shader(), {
+            color: color(1, 1, 1, 1),
+            ambient: 0.8,
+        })
+
+
 
         this.inactive_color = new Material(shader, {
             color: color(.5, .5, .5, 1), ambient: .2,
@@ -281,7 +290,8 @@ export class Main_Demo extends Simulation {
             this.bodies.push(
                 new Snowball(
                     this.data.shapes.ball, 
-                    this.snowballMtl, 
+                    // this.snowballMtl,
+                    this.snowballExplosionMtl,
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
                 ).emplace(
@@ -320,20 +330,25 @@ export class Main_Demo extends Simulation {
                     b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
             }
 
-            if (targetCollide)
+            if (targetCollide) {
+                console.log("Collision");
                 continue
+            }
             //bodies[0] is the cube
             if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
                 targetCollide = true
                 console.log("Collision with cube");
 
-                // Snowballs just disappear upon colliding with a cube
-                if(b.constructor.name === "Snowball")
-                {
-                    console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
-                    this.bodies.splice(i, i);
-                    i--;
-                }
+                //Change to explosion material
+                b.material = this.materials.explosion;
+
+                // // Snowballs just disappear upon colliding with a cube
+                // if(b.constructor.name === "Snowball")
+                // {
+                //     console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
+                //     this.bodies.splice(i, i);
+                //     i--;
+                // }
             }
             else 
                 targetCollide = false
