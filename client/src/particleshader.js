@@ -30,6 +30,8 @@ export class Particle_Shader extends Shader {
                 uniform vec4 shape_color;
                 uniform vec3 squared_scale, camera_center;
         
+                uniform float time; 
+                
                 // Specifier "varying" means a variable's final value will be passed from the vertex shader
                 // on to the next phase (fragment shader), then interpolated per-fragment, weighted by the
                 // pixel fragment's proximity to each of the 3 vertices (barycentric interpolation).
@@ -88,7 +90,7 @@ export class Particle_Shader extends Shader {
                     //     acceleration * local_time * local_time;
 
                     float random = random(vec2(position.x, position.y)); 
-                    vec3 particle_position = vec3(position.x + random, position.y + random, position.z + random); // Produces a weird looking snowball 
+                    vec3 particle_position = vec3(position.x + random*time, position.y + random*time, position.z + random*time); // Produces a weird looking snowball 
 
 
                     gl_Position = projection_camera_model_transform * vec4( particle_position, 1.0 );
@@ -171,6 +173,13 @@ export class Particle_Shader extends Shader {
         gl.uniform4fv(gpu.light_positions_or_vectors, light_positions_flattened);
         gl.uniform4fv(gpu.light_colors, light_colors_flattened);
         gl.uniform1fv(gpu.light_attenuation_factors, gpu_state.lights.map(l => l.attenuation));
+
+
+        //Send the current time to the shader so it can calculate velocity
+        const currentTime = gpu_state.animation_delta_time / 100.0;
+        gl.uniform1f(gpu.time, currentTime);
+        console.log(currentTime);
+
     }
 
     update_GPU(context, gpu_addresses, gpu_state, model_transform, material) {
