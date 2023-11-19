@@ -1,4 +1,5 @@
 import {defs, tiny} from './common.js';
+import {Particle_Shader} from '../src/particleshader.js'
 
 // Pull these names into this module's scope for convenience:
 const {vec3, vec4, color, hex_color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
@@ -34,7 +35,8 @@ export class Transforms_Sandbox_Base extends Scene {
             plastic: new Material(phong,
                 {ambient: .2, diffusivity: .8, specularity: .5, color: color(.9, .5, .9, 1)}),
             metal: new Material(phong,
-                {ambient: .2, diffusivity: .8, specularity: .8, color: color(.9, .5, .9, 1)})
+                {ambient: .2, diffusivity: .8, specularity: .8, color: color(.9, .5, .9, 1)}),
+
         };
     }
 

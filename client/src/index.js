@@ -1,4 +1,8 @@
 import {defs, tiny} from '../examples/common.js';
+import {Body} from './body.js'
+import {Snowball} from './snowball.js'
+import {Player} from "./player.js";
+import {Particle_Shader} from "./particleshader.js";
 import { mapComponents } from './map.js';
 import { checkMapComponentCollisions } from './collisions.js';
 import * as CONST from './constants.js'
@@ -6,89 +10,7 @@ import * as CONST from './constants.js'
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
 
-export class Body {
-    // **Body** can store and update the properties of a 3D body that incrementally
-    // moves from its previous place due to velocities.  It conforms to the
-    // approach outlined in the "Fix Your Timestep!" blog post by Glenn Fiedler.
-    constructor(shape, material, size, expireTime = null) {
-        Object.assign(this, {shape, material, size, expireTime})
-        //expireTime === null => no expiry
-    }
-
-    // (within some margin of distance).
-    static intersect_cube(p, margin = 0) {
-        return p.every(value => value >= -1 - margin && value <= 1 + margin)
-    }
-
-    static intersect_sphere(p, margin = 0) {
-        return p.dot(p) < 1 + margin;
-    }
-
-    emplace(location_matrix, linear_velocity, angular_velocity, spin_axis = vec3(0, 0, 0).randomized(1).normalized()) {                               // emplace(): assign the body's initial values, or overwrite them.
-        this.center = location_matrix.times(vec4(0, 0, 0, 1)).to3();
-        this.rotation = Mat4.translation(...this.center.times(-1)).times(location_matrix);
-        this.previous = {center: this.center.copy(), rotation: this.rotation.copy()};
-        // drawn_location gets replaced with an interpolated quantity:
-        this.drawn_location = location_matrix;
-        this.temp_matrix = Mat4.identity();
-        return Object.assign(this, {linear_velocity, angular_velocity, spin_axis})
-    }
-
-    advance(time_amount) {
-        // advance(): Perform an integration (the simplistic Forward Euler method) to
-        // advance all the linear and angular velocities one time-step forward.
-        if (this.expireTime !== null)
-            this.expireTime -= time_amount
-        this.previous = {center: this.center.copy(), rotation: this.rotation.copy()};
-        // Apply the velocities scaled proportionally to real time (time_amount):
-        // Linear velocity first, then angular:
-        this.center = this.center.plus(this.linear_velocity.times(time_amount));
-        this.rotation.pre_multiply(Mat4.rotation(time_amount * this.angular_velocity, ...this.spin_axis));
-    }
-
-    // The following are our various functions for testing a single point,
-    // p, against some analytically-known geometric volume formula
-
-    blend_rotation(alpha) {
-        // blend_rotation(): Just naively do a linear blend of the rotations, which looks
-        // ok sometimes but otherwise produces shear matrices, a wrong result.
-
-        // TODO:  Replace this function with proper quaternion blending, and perhaps
-        // store this.rotation in quaternion form instead for compactness.
-        return this.rotation.map((x, i) => vec4(...this.previous.rotation[i]).mix(x, alpha));
-    }
-
-    blend_state(alpha) {
-        // blend_state(): Compute the final matrix we'll draw using the previous two physical
-        // locations the object occupied.  We'll interpolate between these two states as
-        // described at the end of the "Fix Your Timestep!" blog post.
-        this.drawn_location = Mat4.translation(...this.previous.center.mix(this.center, alpha))
-            .times(this.blend_rotation(alpha))
-            .times(Mat4.scale(...this.size));
-    }
-
-    check_if_colliding(b, collider) {
-        // check_if_colliding(): Collision detection function.
-        // DISCLAIMER:  The collision method shown below is not used by anyone; it's just very quick
-        // to code.  Making every collision body an ellipsoid is kind of a hack, and looping
-        // through a list of discrete sphere points to see if the ellipsoids intersect is *really* a
-        // hack (there are perfectly good analytic expressions that can test if two ellipsoids
-        // intersect without discretizing them into points).
-        if (this == b)
-            return false;
-        // Nothing collides with itself.
-        // Convert sphere b to the frame where a is a unit sphere:
-        const T = this.inverse.times(b.drawn_location, this.temp_matrix);
-
-        const {intersect_test, points, leeway} = collider;
-        // For each vertex in that b, shift to the coordinate frame of
-        // a_inv*b.  Check if in that coordinate frame it penetrates
-        // the unit sphere at the origin.  Leave some leeway.
-        // console.log(points.arrays)
-        return points.arrays.position.some(p =>
-            intersect_test(T.times(p.to4(1)).to3(), leeway));
-    }
-}
+const SNOWBALL_CHARGE_FACTOR = 5.0;
 
 
 export class Simulation extends Scene {
@@ -152,8 +74,10 @@ export class Simulation extends Scene {
         if (program_state.animate)
             this.simulate(program_state.animation_delta_time);
         // Draw each shape at its current location:
-        for (let b of this.bodies)
+        for (let b of this.bodies) {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
+            // console.log(b.constructor.name)
+        }
     }
 
     update_state(dt)      // update_state(): Your subclass of Simulation has to override this abstract function.
@@ -210,6 +134,13 @@ export class Main_Demo extends Simulation {
             ambient: 0.8, 
         })
 
+        this.snowballExplosionMtl = new Material(new Particle_Shader(), {
+            color: color(1, 1, 1, 1),
+            ambient: 0.8,
+        })
+
+
+
         this.inactive_color = new Material(shader, {
             color: color(.5, .5, .5, 1), ambient: .2,
             texture: this.data.textures.rgb
@@ -238,16 +169,34 @@ export class Main_Demo extends Simulation {
         this.userPos = [0, 0, 40]
         this.userVel = [0, 0, 0]
         this.userCanJump = true
-        this.userCanShoot = true
-        this.userZoom = false
-        this.activeGround = CONST.MIN_Y
+
+
+        //Initialize player class
+        let defaultFireSpeed= vec3(0, 6, 70);
+        let defaultMoveSpeed = vec3(2, 1, 1);
+        this.player = new Player("Player1", defaultMoveSpeed, 0.5, defaultFireSpeed);
+
+        this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
+        this.charging = false;
+
     }
 
     handleKeydown(e) {
-        // if (e.key === 'q') {
-        //     console.log('throwing snowball')
-        //     this.requestThrowSnowball = true
-        // }
+        if (e.key === 'q') {
+            console.log('pressed snowball key')
+
+            //TODO: save a state and charge the shot accordingly
+            if(this.charging) {
+                this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
+            }
+            if(!this.charging)
+                this.charging = true;
+            //         this.userCanShoot = true
+            //         this.userZoom = false
+            //         this.activeGround = CONST.MIN_Y
+        }
+
+
         if (e.key === 'p') {
             const canvas = document.getElementsByTagName('canvas')?.[0]
             canvas.requestFullscreen()
@@ -265,6 +214,13 @@ export class Main_Demo extends Simulation {
         if (['w', 'a', 's', 'd', ' ', 'mouse'].includes(e.key) && this.downKeys[e.key]) {
             delete this.downKeys[e.key]
         }
+
+        //TODO: handle keyup of snowball key
+        if(e.key === 'q'){
+            this.charging = false;
+            this.requestThrowSnowball = true
+        }
+
     }
 
     handleMousedown(e) {
@@ -311,24 +267,43 @@ export class Main_Demo extends Simulation {
     }
 
     update_state(dt) {
-        if (this.requestThrowSnowball) {
+        if (this.requestThrowSnowball && this.player.canFire()) {
             const s = 40
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
             // console.log(this.camera_transform)
             this.requestThrowSnowball = false
+
+             const playerThrowSpeed = this.player.getFireSpeed();
+            let snowballVelocity = vec3 ( playerThrowSpeed[0] ,
+                playerThrowSpeed[1] + (SNOWBALL_CHARGE_FACTOR * this.chargeTime),
+                userDirection[2] * playerThrowSpeed[2]);
+            console.log("snowballVelocity: " + snowballVelocity);
+
+
             this.bodies.push(
-                new Body(
+                new Snowball(
                     this.data.shapes.ball, 
-                    this.snowballMtl, 
+                    // this.snowballMtl,
+                    this.snowballExplosionMtl,
                     vec3(0.7, 0.7, 0.7),
-                    10
+                    this.player.getPlayerID()
+
                 ).emplace(
                     Mat4.translation(...userDirection.map(v => 5 * v)).times(this.camera_transform),
-                    vec3(...userDirection.map(v => s * v)), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
+                    snowballVelocity, // vec3(0, -1, 0).randomized(2).normalized().times(3),
                     0
                 )
             )
+            console.log("Fired");
+             console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
+
+            this.player.indicateFired();
+            this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
         }
+         else if(this.requestThrowSnowball && !this.player.canFire()) {
+             console.log("Player not allowed to fire. Fire rate is " + this.player.getFireRate());
+             this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
+         }
 
         // this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
         let targetCollide = false
@@ -336,21 +311,43 @@ export class Main_Demo extends Simulation {
             const b = this.bodies[i]
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
+
             // If about to fall through floor, reverse y velocity:
             checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (b.center[1] < -1 && b.linear_velocity[1] < 0)
-                b.linear_velocity[1] *= -CONST.FLOOR_BOUNCE_FACTOR;
-            // if ((b.center[0] < CONST.MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > CONST.MAX_MAP_X && b.linear_velocity[0] > 0))
-            //     b.linear_velocity[0] *= -CONST.WALL_BOUNCE_FACTOR;
-            // if ((b.center[2] < CONST.MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > CONST.MAX_MAP_Z && b.linear_velocity[2] > 0))
-            //     b.linear_velocity[2] *= -CONST.WALL_BOUNCE_FACTOR;
+                b.linear_velocity[1] *= -FLOOR_BOUNCE_FACTOR;
 
-            // if (targetCollide)
-            //     continue
-            // if (this.bodies[0].check_if_colliding(b, this.colliders[0]))
-            //     targetCollide = true
-            // else 
-            //     targetCollide = false
+            // Don't make snowballs bounce off walls
+            if(b.constructor.name !== "Snowball") {
+                if ((b.center[0] < MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > MAX_MAP_X && b.linear_velocity[0] > 0))
+                    b.linear_velocity[0] *= -WALL_BOUNCE_FACTOR;
+                if ((b.center[2] < MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > MAX_MAP_Z && b.linear_velocity[2] > 0))
+                    b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
+            }
+
+            if (targetCollide) {
+                console.log("Collision");
+                continue
+            }
+            //bodies[0] is the cube
+            if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
+                targetCollide = true
+                console.log("Collision with cube");
+
+                //Change to explosion material
+                b.material = this.materials.explosion;
+
+                // // Snowballs just disappear upon colliding with a cube
+                // if(b.constructor.name === "Snowball")
+                // {
+                //     console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
+                //     this.bodies.splice(i, i);
+                //     i--;
+                // }
+            }
+            else 
+                targetCollide = false
+
         }
         // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
         // Delete bodies that stop or stray too far away:
@@ -401,7 +398,6 @@ export class Main_Demo extends Simulation {
                 this.snowballMtl.override({ color: color(0.6, 0.6, 0.6, 1) })
             )
         }
-
 
         for (const piece of mapComponents) {
             this.shapes.cube.draw(
