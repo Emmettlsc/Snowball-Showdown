@@ -1352,6 +1352,7 @@ const Webgl_Manager = tiny.Webgl_Manager =
                 open_list.push(...open_list[0].children);
                 // Call display() to draw each registered animation:
                 open_list.shift().display(this, this.program_state);
+                
             }
             // Now that this frame is drawn, request that render() happen
             // again as soon as all other web page events are processed:

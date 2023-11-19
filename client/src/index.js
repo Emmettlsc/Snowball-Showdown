@@ -1,22 +1,18 @@
 import {defs, tiny} from '../examples/common.js';
-
+import { mapComponents } from './map.js';
+import { checkMapComponentCollisions } from './collisions.js';
+import * as CONST from './constants.js'
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
-//outsource to constants
-const MIN_MAP_X = -50
-const MAX_MAP_X = 50
-const MIN_MAP_Z = -50
-const MAX_MAP_Z = 50
-const WALL_BOUNCE_FACTOR = 0.5
-const FLOOR_BOUNCE_FACTOR = 0.8
+
 
 export class Body {
     // **Body** can store and update the properties of a 3D body that incrementally
     // moves from its previous place due to velocities.  It conforms to the
     // approach outlined in the "Fix Your Timestep!" blog post by Glenn Fiedler.
-    constructor(shape, material, size) {
-        Object.assign(this,
-            {shape, material, size})
+    constructor(shape, material, size, expireTime = null) {
+        Object.assign(this, {shape, material, size, expireTime})
+        //expireTime === null => no expiry
     }
 
     // (within some margin of distance).
@@ -41,6 +37,8 @@ export class Body {
     advance(time_amount) {
         // advance(): Perform an integration (the simplistic Forward Euler method) to
         // advance all the linear and angular velocities one time-step forward.
+        if (this.expireTime !== null)
+            this.expireTime -= time_amount
         this.previous = {center: this.center.copy(), rotation: this.rotation.copy()};
         // Apply the velocities scaled proportionally to real time (time_amount):
         // Linear velocity first, then angular:
@@ -240,17 +238,25 @@ export class Main_Demo extends Simulation {
         this.userPos = [0, 0, 40]
         this.userVel = [0, 0, 0]
         this.userCanJump = true
+        this.userCanShoot = true
+        this.userZoom = false
+        this.activeGround = CONST.MIN_Y
     }
 
     handleKeydown(e) {
-        if (e.key === 'q') {
-            console.log('throwing snowball')
-            this.requestThrowSnowball = true
-        }
+        // if (e.key === 'q') {
+        //     console.log('throwing snowball')
+        //     this.requestThrowSnowball = true
+        // }
         if (e.key === 'p') {
             const canvas = document.getElementsByTagName('canvas')?.[0]
             canvas.requestFullscreen()
         }
+        if (e.key === 'e') {
+            this.userZoom = !this.userZoom
+        }
+        if (e.key === 'Escape')
+            this.moveActive = false
         if (['w', 'a', 's', 'd', ' '].includes(e.key))
             this.downKeys[e.key] = true
     }
@@ -288,14 +294,16 @@ export class Main_Demo extends Simulation {
         else
             this.userMovementAmt[0] = 0
 
-        if (this.downKeys[' '] && this.userCanJump) {
+        if (this.downKeys[' '] && this.userCanJump && this.userPos[1] <= this.activeGround) {
             this.userMovementAmt[2] = 1
             this.userCanJump = false
-            setTimeout(() => this.userCanJump = true, 700)
         }
 
-        if (this.downKeys['mouse'])
+        if (this.downKeys['mouse'] && this.userCanShoot) {
             this.requestThrowSnowball = true
+            this.userCanShoot = false
+            setTimeout(() => this.userCanShoot = true, CONST.USER_SHOOT_DELAY)
+        }
     }
 
     random_color() {
@@ -303,30 +311,17 @@ export class Main_Demo extends Simulation {
     }
 
     update_state(dt) {
-        if (this.bodies.length === 0) {
-            this.bodies.push(
-                new Body(
-                    this.data.shapes.cube, 
-                    this.inactive_color, 
-                    vec3(2, 2, 2)
-                ).emplace(
-                    Mat4.translation(...vec3(0, 0, 0)),
-                    vec3(0, 0, 0), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
-                    0
-                )
-            );
-        }
-
         if (this.requestThrowSnowball) {
             const s = 40
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
-            console.log(this.camera_transform)
+            // console.log(this.camera_transform)
             this.requestThrowSnowball = false
             this.bodies.push(
                 new Body(
                     this.data.shapes.ball, 
                     this.snowballMtl, 
-                    vec3(0.7, 0.7, 0.7)
+                    vec3(0.7, 0.7, 0.7),
+                    10
                 ).emplace(
                     Mat4.translation(...userDirection.map(v => 5 * v)).times(this.camera_transform),
                     vec3(...userDirection.map(v => s * v)), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
@@ -335,33 +330,35 @@ export class Main_Demo extends Simulation {
             )
         }
 
-        this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
+        // this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
         let targetCollide = false
-        for (let i = 1; i < this.bodies.length; i++) {
+        for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
             // If about to fall through floor, reverse y velocity:
+            checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (b.center[1] < -1 && b.linear_velocity[1] < 0)
-                b.linear_velocity[1] *= -FLOOR_BOUNCE_FACTOR;
-            if ((b.center[0] < MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > MAX_MAP_X && b.linear_velocity[0] > 0))
-                b.linear_velocity[0] *= -WALL_BOUNCE_FACTOR;
-            if ((b.center[2] < MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > MAX_MAP_Z && b.linear_velocity[2] > 0))
-                b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
+                b.linear_velocity[1] *= -CONST.FLOOR_BOUNCE_FACTOR;
+            // if ((b.center[0] < CONST.MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > CONST.MAX_MAP_X && b.linear_velocity[0] > 0))
+            //     b.linear_velocity[0] *= -CONST.WALL_BOUNCE_FACTOR;
+            // if ((b.center[2] < CONST.MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > CONST.MAX_MAP_Z && b.linear_velocity[2] > 0))
+            //     b.linear_velocity[2] *= -CONST.WALL_BOUNCE_FACTOR;
 
-            if (targetCollide)
-                continue
-            if (this.bodies[0].check_if_colliding(b, this.colliders[0]))
-                targetCollide = true
-            else 
-                targetCollide = false
+            // if (targetCollide)
+            //     continue
+            // if (this.bodies[0].check_if_colliding(b, this.colliders[0]))
+            //     targetCollide = true
+            // else 
+            //     targetCollide = false
         }
-        this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
+        // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
         // Delete bodies that stop or stray too far away:
         // this.bodies = this.bodies.filter(b => b.center.norm() < 70 && b.linear_velocity.norm() > 0.2);
+        this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
     }
 
-    display(context, program_state) {
+    display(context, program_state) { 
         // display(): Draw everything else in the scene besides the moving bodies.
         super.display(context, program_state);
 
@@ -370,7 +367,11 @@ export class Main_Demo extends Simulation {
             program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix).
             // this.children.push(new defs.Program_State_Viewer());
         }
-        program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 1, 500);
+        program_state.projection_transform = Mat4.perspective(
+            this.userZoom ? Math.PI / 8 : 0.33 * Math.PI, 
+            context.width / context.height, 
+            1, 500
+        );
         program_state.lights = [
             new Light(vec4(0, -100, 0, 1), color(0, 0, 1, 1), 10000),
             new Light(vec4(0, 160, 0, 1), color(1, 1, 1, 1), 100000)
@@ -384,7 +385,7 @@ export class Main_Demo extends Simulation {
             this.material.override(this.data.textures.earth)
         )
         // border walls
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 0; i++) {
             const translation = [
                 [-50, 0, 0],
                 [50, 0, 0],
@@ -397,57 +398,66 @@ export class Main_Demo extends Simulation {
                 Mat4.translation(...translation)
                     .times(Mat4.rotation(Math.PI / 2, ...rotation))
                     .times(Mat4.scale(50, 50, 1)),
-                this.snowballMtl.override({ color: color(0.2, 0.2, 0.2, 1) })
+                this.snowballMtl.override({ color: color(0.6, 0.6, 0.6, 1) })
             )
         }
 
-        // outsource to contants
-        const USER_ROTATION_SPEED_X = 0.005
-        const USER_ROTATION_SPEED_Y = 0.005
-        const USER_FWD_MOVE_SPEED = 0.6
-        const USER_SIDE_MOVE_SPEED = 0.3
-        const USER_BACK_MOVE_SPEED = 0.3
+
+        for (const piece of mapComponents) {
+            this.shapes.cube.draw(
+                context, program_state,
+                Mat4.translation(...piece.translate)
+                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+                    .times(Mat4.scale(...piece.scale)),
+                this.material
+            )
+        }
 
         this.checkAllDownKeys()
-
-        this.cameraRotation[0] += USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
-        this.cameraRotation[1] += USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
+        this.cameraRotation[0] += CONST.USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
+        this.cameraRotation[1] += CONST.USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
         this.mouseMovementAmt = [0, 0]
         
         // calculate new user position
         if (this.userMovementAmt[0]) {
-            this.userPos[0] += this.userMovementAmt[0] * USER_SIDE_MOVE_SPEED * Math.cos(this.cameraRotation[0]);
-            this.userPos[2] += this.userMovementAmt[0] * USER_SIDE_MOVE_SPEED * Math.sin(this.cameraRotation[0]);
+            this.userPos[0] += this.userMovementAmt[0] * CONST.USER_SIDE_MOVE_SPEED * Math.cos(this.cameraRotation[0]);
+            this.userPos[2] += this.userMovementAmt[0] * CONST.USER_SIDE_MOVE_SPEED * Math.sin(this.cameraRotation[0]);
         }
         if (this.userMovementAmt[1]) {
-            const speed = this.userMovementAmt[1] === 1 ? USER_FWD_MOVE_SPEED : USER_BACK_MOVE_SPEED
+            const speed = this.userMovementAmt[1] === 1 ? CONST.USER_FWD_MOVE_SPEED : CONST.USER_BACK_MOVE_SPEED
             this.userPos[0] -= this.userMovementAmt[1] * speed * Math.cos(this.cameraRotation[0] + Math.PI / 2);
             this.userPos[2] -= this.userMovementAmt[1] * speed * Math.sin(this.cameraRotation[0] + Math.PI / 2);
         }
         if (this.userMovementAmt[2]) {
-            this.userVel[1] += 0.15
+            this.userVel[1] += CONST.USER_JUMP_VEL
             this.userMovementAmt[2] = 0
         }
-        else this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
+        
 
+        const compCollisionData = checkMapComponentCollisions(this.userPos)
+        const activeCeiling = compCollisionData.activeCeiling
+        this.activeGround = compCollisionData.activeGround
         // check if user is out of bounds
-        if (this.userPos[0] < MIN_MAP_X)
-            this.userPos[0] = MIN_MAP_X
-        else if (this.userPos[0] > MAX_MAP_X)
-            this.userPos[0] = MAX_MAP_X
-        if (this.userPos[2] < MIN_MAP_Z)
-            this.userPos[2] = MIN_MAP_Z
-        else if (this.userPos[2] > MAX_MAP_Z)
-            this.userPos[2] = MAX_MAP_Z
-        if (this.userPos[1] < -1 && this.userVel[1] < 0 && this.userVel[1] > -0.05) {
-            this.userPos[1] = -1
+        // if (this.userPos[0] < MIN_MAP_X)
+        //     this.userPos[0] = MIN_MAP_X
+        // else if (this.userPos[0] > MAX_MAP_X)
+        //     this.userPos[0] = MAX_MAP_X
+        // if (this.userPos[2] < MIN_MAP_Z)
+        //     this.userPos[2] = MIN_MAP_Z
+        // else if (this.userPos[2] > MAX_MAP_Z)
+        //     this.userPos[2] = MAX_MAP_Z
+        if (this.userPos[1] <= this.activeGround && (this.userVel[1] <= 0 || Math.abs(this.userVel[1] < 0.1)) ) {
+            this.userVel[1] = Math.min(0.3 * (this.activeGround - this.userPos[1]), 0.1)
+            this.userCanJump = true
+        }
+        else 
+            this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
+        this.userPos[1] += this.userVel[1]
+
+        if (this.userPos[1] > activeCeiling - 0.1){
+            this.userPos[1] = activeCeiling - 0.1
             this.userVel[1] = 0
         }
-        else if (this.userPos[1] < -1 && this.userVel[1] < 0)
-            this.userVel[1] *= -.3;
-
-        this.userPos[1] += this.userVel[1]
-        // this.userMovementAmt = [0, 0]
 
         program_state.camera_transform = Mat4.rotation(-this.cameraRotation[0], 0, 1, 0)
             .times(Mat4.rotation(-this.cameraRotation[1], 1, 0, 0));
@@ -456,12 +466,6 @@ export class Main_Demo extends Simulation {
 
         program_state.camera_transform.pre_multiply(Mat4.translation(...this.userPos));
         program_state.camera_inverse.post_multiply(Mat4.translation(...this.userPos.map(v => -v)));
-
-        // program_state.camera_transform = (Mat4.rotation(-this.cameraRotation[1], 1, 0, 0));
-        // program_state.camera_inverse = (Mat4.rotation(+this.cameraRotation[1], 1, 0, 0));
-    
-                    
-        // console.log(program_state.camera_transform)
         this.camera_transform = program_state.camera_transform
     }
 }
