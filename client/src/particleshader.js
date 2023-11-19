@@ -178,7 +178,7 @@ export class Particle_Shader extends Shader {
         //Send the current time to the shader so it can calculate velocity
         const currentTime = gpu_state.animation_delta_time / 100.0;
         gl.uniform1f(gpu.time, currentTime);
-        console.log(currentTime);
+        // console.log(currentTime);
 
     }
 

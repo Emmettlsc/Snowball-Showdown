@@ -17,9 +17,12 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
         const maxY = (translate[1] + scale[0])
         if (posArray[0] > minX && posArray[0] < maxX) {
             if (posArray[2] > minZ && posArray[2] < maxZ && posArray[1] < maxY){
-                if (isSnowball)
+                if (isSnowball) {
                     velocityArray[2] = -1 * CONST.WALL_BOUNCE_FACTOR * velocityArray[2]
-                posArray[2] = posArray[2] > translate[2] ? maxZ : minZ
+                    posArray[2] = velocityArray[2] > 0 ? maxZ : minZ
+                }
+                else 
+                    posArray[2] = posArray[2] > translate[2] ? maxZ : minZ
             }
         }
     }
@@ -31,9 +34,12 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
         const maxY = (translate[1] + scale[1])
         if (posArray[2] > minZ && posArray[2] < maxZ) {
             if (posArray[0] > minX && posArray[0] < maxX && posArray[1] < maxY) {
-                if (isSnowball)
+                if (isSnowball) {
                     velocityArray[0] = -1 * CONST.WALL_BOUNCE_FACTOR * velocityArray[0]
-                posArray[0] = posArray[0] > translate[0] ? maxX : minX
+                    posArray[0] = velocityArray[0] > 0 ? maxX : minX
+                }
+                else 
+                    posArray[0] = posArray[0] > translate[0] ? maxX : minX
             }
         }
     }
