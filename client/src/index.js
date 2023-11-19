@@ -110,6 +110,8 @@ export class Test_Data {
             prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
             gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
             donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
+
+            snowball2: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(3),
         };
     }
 
@@ -141,6 +143,7 @@ export class Main_Demo extends Simulation {
         this.snowballExplosionMtl = new Material(new Particle_Shader(), {
             color: color(1, 1, 1, 1),
             ambient: 0.8,
+            localTime: 0.0,
         })
 
 
@@ -289,9 +292,9 @@ export class Main_Demo extends Simulation {
 
             this.bodies.push(
                 new Snowball(
-                    this.data.shapes.ball, 
+                    this.data.shapes.snowball2,
                     // this.snowballMtl,
-                    this.snowballExplosionMtl,
+                    this.snowballExplosionMtl.override({localTime: (this.localTime + dt)}),
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
                 ).emplace(

@@ -31,11 +31,15 @@ export class Particle_Shader extends Shader {
                 uniform vec3 squared_scale, camera_center;
         
                 uniform float time; 
+                uniform float startTime; 
                 
                 // Specifier "varying" means a variable's final value will be passed from the vertex shader
                 // on to the next phase (fragment shader), then interpolated per-fragment, weighted by the
                 // pixel fragment's proximity to each of the 3 vertices (barycentric interpolation).
                 varying vec3 N, vertex_worldspace;
+                
+                varying vec3 normalvector_worldspace; 
+                
                 // ***** PHONG SHADING HAPPENS HERE: *****                                       
                 vec3 phong_model_lights( vec3 N, vec3 vertex_worldspace ){                                        
                     // phong_model_lights():  Add up the lights' contributions.
@@ -71,50 +75,39 @@ export class Particle_Shader extends Shader {
     vertex_glsl_code() {
         // ********* VERTEX SHADER *********
         return this.shared_glsl_code() + `
-                attribute vec3 position, normal;                            
+                attribute vec3 position, normal;           
+                attribute vec4 color; 
+                // attribute float localTime; 
+                                 
                 // Position is expressed in object coordinates.
-
                 uniform mat4 model_transform;
                 uniform mat4 projection_camera_model_transform;
-
+                
+                // float velocity = 3; 
 
                 float random(vec2 v_vector) {
                   return fract(sin(dot(v_vector, vec2(12.9898, 78.233))) * 43758.5453);
                 }
                 void main(){                                                                   
                     // The vertex's final resting place (in NDCS):
+                    
+                    // Need normal vector to tell triangles which way they should explode 
+                    normalvector_worldspace = normal; 
+                    
+                    vec4 offset = vec4(position, 1.0);
+                    float dist = 5.0;
+                    offset.xyz += normal * dist;
 
-                    // local_time = time - starting_time;
-                    // current_position = start_position +
-                    //     velocity * local_time +
-                    //     acceleration * local_time * local_time;
-
-                    float random = random(vec2(position.x, position.y)); 
-                    vec3 particle_position = vec3(position.x + random*time, position.y + random*time, position.z + random*time); // Produces a weird looking snowball 
-
-
-                    gl_Position = projection_camera_model_transform * vec4( particle_position, 1.0 );
+                    // gl_Position = projection_camera_model_transform * vec4( position, 1.0 ) * offset;
+                    gl_Position = projection_camera_model_transform *  model_transform * offset; 
+                    
                     // The final normal vector in screen space.
                     N = normalize( mat3( model_transform ) * normal / squared_scale);
-                    vertex_worldspace = ( model_transform * vec4( particle_position, 1.0 ) ).xyz;
+                    vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
+                     
                   } 
                 
-                // attribute vec2 a_point;
-                // attribute vec2 a_center;
-                // uniform mat4 u_trans_pos_matrix;
-                // uniform float u_time;
-                // uniform float u_speed;
-                // uniform float u_a;
-                // float random(vec2 v_vector) {
-                //   return fract(sin(dot(v_vector, vec2(12.9898, 78.233))) * 43758.5453);
-                // }
-                // varying vec2 v_text_position;
-                // void main() {
-                //   v_text_position = a_point;
-                //   vec2 v_direction = vec2(random(a_center - vec2(1, 1)) - 0.5, random(a_center + vec2(1, 1)) - 0.5);
-                //   vec2 v_position = a_point + (u_speed * u_time - 0.5 * u_a * u_time * u_time) * v_direction;
-                //   gl_Position = u_trans_pos_matrix * vec4(v_position.x, v_position.y, 0.0, 1.0);
-                // }
+                
                   
                   `;
     }
@@ -124,11 +117,14 @@ export class Particle_Shader extends Shader {
         // A fragment is a pixel that's overlapped by the current triangle.
         // Fragments affect the final image or get discarded due to depth.
         return this.shared_glsl_code() + `
+
                 void main(){                                                           
                     // Compute an initial (ambient) color:
                     gl_FragColor = vec4( shape_color.xyz * ambient, shape_color.w );
                     // Compute the final color with contributions from lights:
                     gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
+                    
+                    // gl_FragColor = vec4(normalvector_worldspace, 1.0); // For debugging purposes so it's easier to see the triangles from the explosion 
                   } `;
     }
 
@@ -140,6 +136,11 @@ export class Particle_Shader extends Shader {
         gl.uniform1f(gpu.diffusivity, material.diffusivity);
         gl.uniform1f(gpu.specularity, material.specularity);
         gl.uniform1f(gpu.smoothness, material.smoothness);
+
+        // if(material.localTime) {
+        //     gl.uniform1f(gpu.localTime, material.localTime);
+        //     console.log("Snowball's localTime is " + material.localTime);
+        // }
     }
 
     send_gpu_state(gl, gpu, gpu_state, model_transform) {
@@ -176,9 +177,12 @@ export class Particle_Shader extends Shader {
 
 
         //Send the current time to the shader so it can calculate velocity
-        const currentTime = gpu_state.animation_delta_time / 100.0;
-        gl.uniform1f(gpu.time, currentTime);
-        console.log(currentTime);
+        // Assign spawn time in the material????
+        // const startTime = gpu_state.animation_time;
+        // const currentTime = gpu_state.animation_delta_time;
+        // gl.uniform1f(gpu.time, currentTime);
+        // gl.uniform1f(gpu.startTime, startTime)
+        // console.log(startTime + " " + currentTime);
 
     }
 
