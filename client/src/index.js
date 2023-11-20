@@ -6,6 +6,7 @@ import {Particle_Shader} from "./particleshader.js";
 import { mapComponents } from './map.js';
 import { checkMapComponentCollisions } from './collisions.js';
 import * as CONST from './constants.js'
+import {Test_Data} from './materials.js'
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
@@ -33,8 +34,15 @@ export class Simulation extends Scene {
         while (Math.abs(this.time_accumulator) >= this.dt) {
             // Single step of the simulation for all bodies:
             this.update_state(this.dt);
-            for (let b of this.bodies)
+            for (let b of this.bodies) {
                 b.advance(this.dt);
+
+                //Jankily update snowball time:
+                if(b.material.hasOwnProperty('localTime')) {
+                    console.log("Snowball's localTime is " + b.material.localTime);
+                    b.material.localTime += this.dt;
+                }
+            }
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
             this.t += Math.sign(frame_time) * this.dt;
@@ -73,6 +81,7 @@ export class Simulation extends Scene {
         // Draw each shape at its current location:
         for (let b of this.bodies) {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
+            // console.log("Body has material: " + b.material.constructor.name)
             // console.log(b.constructor.name)
         }
     }
@@ -84,34 +93,36 @@ export class Simulation extends Scene {
 }
 
 
-export class Test_Data {
-    // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
-    constructor() {
-        this.textures = {
-            rgb: new Texture("assets/rgb.jpg"),
-            earth: new Texture("assets/earth.gif"),
-            grid: new Texture("assets/stars.png"),
-            stars: new Texture("assets/stars.png"),
-            text: new Texture("assets/text.png"),
-        }
-        this.shapes = {
-            donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
-            cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
-            capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
-            ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
-            cube: new defs.Cube(),
-            prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
-            gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-            donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
-        };
-    }
-
-    random_shape(shape_list = this.shapes) {
-        // random_shape():  Extract a random shape from this.shapes.
-        const shape_names = Object.keys(shape_list);
-        return shape_list[shape_names[~~(shape_names.length * Math.random())]]
-    }
-}
+// export class Test_Data {
+//     // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
+//     constructor() {
+//         this.textures = {
+//             rgb: new Texture("assets/rgb.jpg"),
+//             earth: new Texture("assets/earth.gif"),
+//             grid: new Texture("assets/stars.png"),
+//             stars: new Texture("assets/stars.png"),
+//             text: new Texture("assets/text.png"),
+//         }
+//         this.shapes = {
+//             donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
+//             cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
+//             capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
+//             ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
+//             cube: new defs.Cube(),
+//             prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
+//             gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
+//             donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
+//
+//             snowball2: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(3),
+//         };
+//     }
+//
+//     random_shape(shape_list = this.shapes) {
+//         // random_shape():  Extract a random shape from this.shapes.
+//         const shape_names = Object.keys(shape_list);
+//         return shape_list[shape_names[~~(shape_names.length * Math.random())]]
+//     }
+// }
 
 export class Main_Demo extends Simulation {
     // ** Inertia_Demo** demonstration: This scene lets random initial momentums
@@ -122,27 +133,31 @@ export class Main_Demo extends Simulation {
         this.shapes = Object.assign({}, this.data.shapes);
         this.shapes.square = new defs.Square();
         const shader = new defs.Fake_Bump_Map(1);
-        this.material = new Material(shader, {
-            color: color(.4, .8, .4, 1),
-            ambient: .4, texture: this.data.textures.stars
-        })
-        this.snowballMtl = new Material(new defs.Phong_Shader(), {
-            color: color(1, 1, 1, 1),
-            ambient: 0.8, 
-        })
 
-        this.snowballExplosionMtl = new Material(new Particle_Shader(), {
-            color: color(1, 1, 1, 1),
-            ambient: 0.8,
-        })
+        this.materials = Object.assign({}, this.data.materials);
 
-
-
-        this.inactive_color = new Material(shader, {
-            color: color(.5, .5, .5, 1), ambient: .2,
-            texture: this.data.textures.rgb
-        });
-        this.active_color = this.inactive_color.override({color: color(.5, 0, 0, 1), ambient: .5});
+        // this.material = new Material(shader, {
+        //     color: color(.4, .8, .4, 1),
+        //     ambient: .4, texture: this.data.textures.stars
+        // })
+        // this.snowballMtl = new Material(new defs.Phong_Shader(), {
+        //     color: color(1, 1, 1, 1),
+        //     ambient: 0.8,
+        // })
+        //
+        // this.snowballExplosionMtl = new Material(new Particle_Shader(), {
+        //     color: color(1, 1, 1, 1),
+        //     ambient: 0.8,
+        //     localTime: 0.0,
+        // })
+        //
+        //
+        //
+        // this.inactive_color = new Material(shader, {
+        //     color: color(.5, .5, .5, 1), ambient: .2,
+        //     texture: this.data.textures.rgb
+        // });
+        // this.active_color = this.inactive_color.override({color: color(.5, 0, 0, 1), ambient: .5});
 
         this.colliders = [
             {intersect_test: Body.intersect_sphere, points: new defs.Subdivision_Sphere(1), leeway: .5},
@@ -169,10 +184,11 @@ export class Main_Demo extends Simulation {
 
 
         //Initialize player class
+
         let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
-        this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed); 
+        this.player = new Player(this.playerId, defaultMoveSpeed, 10, defaultFireSpeed);
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
@@ -258,6 +274,7 @@ export class Main_Demo extends Simulation {
 
     update_state(dt) {
         if (this.requestThrowSnowball && this.player.canFire()) {
+
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
             this.requestThrowSnowball = false
             const chargeAmount = Math.min( Math.max(this.chargeTime, 1.0), 2 )
@@ -267,7 +284,9 @@ export class Main_Demo extends Simulation {
             this.bodies.push(
                 new Snowball(
                     this.data.shapes.ball, 
-                    this.snowballExplosionMtl,
+                    // this.materials.snowballMtl,
+                    this.materials.snowballTexturedMtl,
+
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
                 ).emplace(
@@ -276,8 +295,10 @@ export class Main_Demo extends Simulation {
                     0
                 )
             )
-            console.log("Fired");
+
+            console.log("Fired snowball with localTime of " + this.bodies[this.bodies.length - 1].material.localTime);
             console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
+
 
             this.player.indicateFired();
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
@@ -289,17 +310,36 @@ export class Main_Demo extends Simulation {
 
         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
+
+            if(b.hasCollided()) {
+                if(b.timeSinceCollision() > 1.0){
+                    this.bodies.splice(i, 1);
+                    i--;
+                }
+                else
+                    continue;
+            }
+
+
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
 
+
             // If about to fall through floor, reverse y velocity:
-            checkMapComponentCollisions(b.center, b.linear_velocity, true)
+            let collisionResult = checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (
                 b.center[0] < CONST.MAX_MAP_X && b.center[0] > CONST.MIN_MAP_X && 
                 b.center[2] < CONST.MAX_MAP_Z && b.center[2] > CONST.MIN_MAP_Z && 
                 b.center[1] < -1 && b.linear_velocity[1] < 0
             )
                 b.linear_velocity[1] *= -CONST.FLOOR_BOUNCE_FACTOR;
+
+            //TODO: test explosion particle effects by making snowballs explode on collision
+            if(collisionResult.collision) {
+                console.log("[BODIES] Collided snowball at: " + b.center);
+                b.slow_snowball();
+                b.indicateCollision();
+            }
 
             // Don't make snowballs bounce off walls
             // if(b.constructor.name !== "Snowball") {
@@ -314,12 +354,19 @@ export class Main_Demo extends Simulation {
             //     continue
             // }
             //bodies[0] is the cube
+
             // if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
             //     targetCollide = true
             //     console.log("Collision with cube");
 
-            //     //Change to explosion material
-            //     b.material = this.materials.explosion;
+            // if(b.constructor.name === "Snowball") { //Janky way of checking object type?
+            //         //Change to explosion material
+            //         b.material = this.snowballExplosionMtl.override({localTime: 0.0});
+            //
+            //         // Slow it down so the explosion can be seen if it hits the center of the target
+            //         b.slow_snowball();
+            // }
+
 
             //     // // Snowballs just disappear upon colliding with a cube
             //     // if(b.constructor.name === "Snowball")
@@ -331,6 +378,7 @@ export class Main_Demo extends Simulation {
             // }
             // else 
             //     targetCollide = false
+
 
         }
         // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
@@ -365,7 +413,7 @@ export class Main_Demo extends Simulation {
             Mat4.translation(0, -2, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
                 .times(Mat4.scale(50, 50, 1)),
-            this.material.override(this.data.textures.earth)
+            this.materials.material.override(this.data.textures.earth)
         )
         // border walls
         // for (let i = 0; i < 0; i++) {
@@ -391,7 +439,7 @@ export class Main_Demo extends Simulation {
                 Mat4.translation(...piece.translate)
                     .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
                     .times(Mat4.scale(...piece.scale)),
-                this.material
+                this.materials.material
             )
         }
 

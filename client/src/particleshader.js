@@ -3,9 +3,12 @@ import {widgets} from '../tiny-graphics-widgets.js';
 // Pull these names into this module's scope for convenience:
 const {
     Vector, Vector3, vec, vec3, vec4, color, Matrix, Mat4,
-    Light, Shape, Material, Shader, Texture, Scene
+    Light, Shape, Material, Shader, Texture, Scene, program
 } = tiny;
 
+// TODO: storing the particle's local time in the *material* feels janky
+
+//TODO: implement some sort of lifetime so that exploded particles disappear after some time
 
 export class Particle_Shader extends Shader {
     // **Phong_Shader** is a subclass of Shader, which stores and maanges a GPU program.
@@ -30,12 +33,15 @@ export class Particle_Shader extends Shader {
                 uniform vec4 shape_color;
                 uniform vec3 squared_scale, camera_center;
         
-                uniform float time; 
+                uniform float localTime; 
                 
                 // Specifier "varying" means a variable's final value will be passed from the vertex shader
                 // on to the next phase (fragment shader), then interpolated per-fragment, weighted by the
                 // pixel fragment's proximity to each of the 3 vertices (barycentric interpolation).
                 varying vec3 N, vertex_worldspace;
+                
+                varying vec3 normalvector_worldspace; 
+                
                 // ***** PHONG SHADING HAPPENS HERE: *****                                       
                 vec3 phong_model_lights( vec3 N, vec3 vertex_worldspace ){                                        
                     // phong_model_lights():  Add up the lights' contributions.
@@ -71,50 +77,42 @@ export class Particle_Shader extends Shader {
     vertex_glsl_code() {
         // ********* VERTEX SHADER *********
         return this.shared_glsl_code() + `
-                attribute vec3 position, normal;                            
+                attribute vec3 position, normal;           
+                attribute vec4 color; 
+                // attribute float localTime; 
+                                 
                 // Position is expressed in object coordinates.
-
                 uniform mat4 model_transform;
                 uniform mat4 projection_camera_model_transform;
-
+                
+                varying float currentTime; 
 
                 float random(vec2 v_vector) {
                   return fract(sin(dot(v_vector, vec2(12.9898, 78.233))) * 43758.5453);
                 }
                 void main(){                                                                   
                     // The vertex's final resting place (in NDCS):
+                    
+                    // Need normal vector to tell triangles which way they should explode 
+                    normalvector_worldspace = normal; 
+                    
+                    vec4 new_position = vec4(position, 1.0);
+                    float explosionSpeed = 3.0;
+                    // offset.xyz += normal * explosionSpeed *  -5.0 * sin(localTime) * 0.5 + 0.5;
+                    // offset.xyz += normal * explosionSpeed *  -2.0 * sin(5.0 * localTime); // Lets you see snowball rapidly expand and contract as it travels 
+                    
+                    new_position.xyz += normal * explosionSpeed * exp(localTime);
 
-                    // local_time = time - starting_time;
-                    // current_position = start_position +
-                    //     velocity * local_time +
-                    //     acceleration * local_time * local_time;
-
-                    float random = random(vec2(position.x, position.y)); 
-                    vec3 particle_position = vec3(position.x + random*time, position.y + random*time, position.z + random*time); // Produces a weird looking snowball 
-
-
-                    gl_Position = projection_camera_model_transform * vec4( particle_position, 1.0 );
+                    // gl_Position = projection_camera_model_transform * vec4( position, 1.0 ) * offset;
+                    gl_Position = projection_camera_model_transform * new_position; 
+                    
                     // The final normal vector in screen space.
                     N = normalize( mat3( model_transform ) * normal / squared_scale);
-                    vertex_worldspace = ( model_transform * vec4( particle_position, 1.0 ) ).xyz;
+                    vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
+                     
                   } 
                 
-                // attribute vec2 a_point;
-                // attribute vec2 a_center;
-                // uniform mat4 u_trans_pos_matrix;
-                // uniform float u_time;
-                // uniform float u_speed;
-                // uniform float u_a;
-                // float random(vec2 v_vector) {
-                //   return fract(sin(dot(v_vector, vec2(12.9898, 78.233))) * 43758.5453);
-                // }
-                // varying vec2 v_text_position;
-                // void main() {
-                //   v_text_position = a_point;
-                //   vec2 v_direction = vec2(random(a_center - vec2(1, 1)) - 0.5, random(a_center + vec2(1, 1)) - 0.5);
-                //   vec2 v_position = a_point + (u_speed * u_time - 0.5 * u_a * u_time * u_time) * v_direction;
-                //   gl_Position = u_trans_pos_matrix * vec4(v_position.x, v_position.y, 0.0, 1.0);
-                // }
+                
                   
                   `;
     }
@@ -124,15 +122,18 @@ export class Particle_Shader extends Shader {
         // A fragment is a pixel that's overlapped by the current triangle.
         // Fragments affect the final image or get discarded due to depth.
         return this.shared_glsl_code() + `
+
                 void main(){                                                           
                     // Compute an initial (ambient) color:
                     gl_FragColor = vec4( shape_color.xyz * ambient, shape_color.w );
                     // Compute the final color with contributions from lights:
                     gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
+                    
+                    // gl_FragColor = vec4(normalvector_worldspace, 1.0); // For debugging purposes so it's easier to see the triangles from the explosion 
                   } `;
     }
 
-    send_material(gl, gpu, material) {
+    send_material(gl, gpu, material, program) {
         // send_material(): Send the desired shape-wide material qualities to the
         // graphics card, where they will tweak the Phong lighting formula.
         gl.uniform4fv(gpu.shape_color, material.color);
@@ -140,9 +141,30 @@ export class Particle_Shader extends Shader {
         gl.uniform1f(gpu.diffusivity, material.diffusivity);
         gl.uniform1f(gpu.specularity, material.specularity);
         gl.uniform1f(gpu.smoothness, material.smoothness);
+
+        if(material.hasOwnProperty('localTime')) {
+            gl.useProgram(program); //PLS
+
+
+            console.log("[SHADER] Snowball's previous GPU localTime: " + gl.getUniform(program, gpu.localTime));
+            console.log("[SHADER] Snowball's material localTime is " + material.localTime);
+            gl.uniform1f(gpu.localTime, material.localTime);
+            console.log("[SHADER] Snowball's GPU localTime: " + gl.getUniform(program, gpu.localTime));
+            // gl.vertexAttrib1f(gpu.localTime, material.localTime);
+            //
+            // gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 0, 0);
+            // gpu.shader_attributes.localTime = time;
+
+
+
+        }
+        else {
+            console.log("[SHADER] has no localTime variable");
+        }
+
     }
 
-    send_gpu_state(gl, gpu, gpu_state, model_transform) {
+    send_gpu_state(gl, gpu, gpu_state, model_transform, program) {
         // send_gpu_state():  Send the state of our whole drawing context to the GPU.
         const O = vec4(0, 0, 0, 1), camera_center = gpu_state.camera_transform.times(O).to3();
         gl.uniform3fv(gpu.camera_center, camera_center);
@@ -175,14 +197,9 @@ export class Particle_Shader extends Shader {
         gl.uniform1fv(gpu.light_attenuation_factors, gpu_state.lights.map(l => l.attenuation));
 
 
-        //Send the current time to the shader so it can calculate velocity
-        const currentTime = gpu_state.animation_delta_time / 100.0;
-        gl.uniform1f(gpu.time, currentTime);
-        // console.log(currentTime);
-
     }
 
-    update_GPU(context, gpu_addresses, gpu_state, model_transform, material) {
+    update_GPU(context, gpu_addresses, gpu_state, model_transform, material, program) {
         // update_GPU(): Define how to synchronize our JavaScript's variables to the GPU's.  This is where the shader
         // recieves ALL of its inputs.  Every value the GPU wants is divided into two categories:  Values that belong
         // to individual objects being drawn (which we call "Material") and values belonging to the whole scene or
@@ -190,65 +207,11 @@ export class Particle_Shader extends Shader {
         // within this function, one data field at a time, to fully initialize the shader for a draw.
 
         // Fill in any missing fields in the Material object with custom defaults for this shader:
-        const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40};
+        const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40, localTime: 0.0};
         material = Object.assign({}, defaults, material);
 
-        this.send_material(context, gpu_addresses, material);
-        this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform);
+        this.send_material(context, gpu_addresses, material, program);
+        this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform, program);
+
     }
 }
-
-
-
-// export class Particle_Shader extends defs.Phong_Shader {
-//     // **Basic_Shader** is nearly the simplest example of a subclass of Shader, which stores and
-//     // maanges a GPU program.  Basic_Shader is a trivial pass-through shader that applies a
-//     // shape's matrices and then simply samples literal colors stored at each vertex.
-//     update_GPU(context, gpu_addresses, graphics_state, model_transform, material) {
-//         // update_GPU():  Defining how to synchronize our JavaScript's variables to the GPU's:
-//         const [P, C, M] = [graphics_state.projection_transform, graphics_state.camera_inverse, model_transform],
-//             PCM = P.times(C).times(M);
-//         context.uniformMatrix4fv(gpu_addresses.projection_camera_model_transform, false,
-//             Matrix.flatten_2D_to_1D(PCM.transposed()));
-//     }
-//
-//     shared_glsl_code() {
-//         // ********* SHARED CODE, INCLUDED IN BOTH SHADERS *********
-//         return `precision mediump float;
-//                 varying vec4 VERTEX_COLOR;
-//             `;
-//     }
-//
-//     vertex_glsl_code() {
-//         // ********* VERTEX SHADER *********
-//         return this.shared_glsl_code() + `
-//                 attribute vec4 color;
-//                 attribute vec3 position;
-//                 // Position is expressed in object coordinates.
-//                 uniform mat4 projection_camera_model_transform;
-//
-//                 varying vec3 particle_position;
-//                 void main(){
-//                     // Compute the vertex's final resting place (in NDCS), and use the hard-coded color of the vertex:
-//                     // gl_Position = projection_camera_model_transform * vec4( position, 1.0 );
-//                     VERTEX_COLOR = color;
-//
-//                      local_time = time - starting_time;
-//                       current_position = start_position +
-//                          velocity * local_time +
-//                          acceleration * local_time * local_time;
-//                     particle_position = vec3(current_position, current_position, current_position); //flies out equally in all 3 dimensions
-//
-//                     gl_Position = projection_camera_model_transform * vec4( particle_position, 1.0 );
-//                 }`;
-//     }
-//
-//     fragment_glsl_code() {
-//         // ********* FRAGMENT SHADER *********
-//         return this.shared_glsl_code() + `
-//                 void main(){
-//                     // The interpolation gets done directly on the per-vertex colors:
-//                     gl_FragColor = VERTEX_COLOR;
-//                 }`;
-//     }
-// }

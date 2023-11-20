@@ -1,5 +1,4 @@
 import {defs, tiny} from './common.js';
-import {Particle_Shader} from '../src/particleshader.js'
 
 // Pull these names into this module's scope for convenience:
 const {vec3, vec4, color, hex_color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
