@@ -6,6 +6,8 @@ const {
     Light, Shape, Material, Shader, Texture, Scene, program
 } = tiny;
 
+// TODO: storing the particle's local time in the *material* feels janky
+
 //TODO: implement some sort of lifetime so that exploded particles disappear after some time
 
 export class Particle_Shader extends Shader {
@@ -95,7 +97,7 @@ export class Particle_Shader extends Shader {
                     normalvector_worldspace = normal; 
                     
                     vec4 new_position = vec4(position, 1.0);
-                    float explosionSpeed = 1.0;
+                    float explosionSpeed = 3.0;
                     // offset.xyz += normal * explosionSpeed *  -5.0 * sin(localTime) * 0.5 + 0.5;
                     // offset.xyz += normal * explosionSpeed *  -2.0 * sin(5.0 * localTime); // Lets you see snowball rapidly expand and contract as it travels 
                     

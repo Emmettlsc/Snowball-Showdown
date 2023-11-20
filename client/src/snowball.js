@@ -24,6 +24,15 @@ export class Snowball extends Body {
 
     }
 
+    timeSinceCollision(){
+        if(this.#collidedWithTarget) {
+            return this.material.localTime;
+        }
+
+        else
+            return 0.0;
+    }
+
     hasCollided() {
         return this.#collidedWithTarget;
     }

@@ -188,7 +188,7 @@ export class Main_Demo extends Simulation {
         let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
-        this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed); 
+        this.player = new Player(this.playerId, defaultMoveSpeed, 10, defaultFireSpeed);
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
@@ -311,11 +311,20 @@ export class Main_Demo extends Simulation {
 
         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
+
+            if(b.hasCollided()) {
+                if(b.timeSinceCollision() > 1.0){
+                    this.bodies.splice(i, 1);
+                    i--;
+                }
+                else
+                    continue;
+            }
+
+
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
 
-            if(b.hasCollided())
-                console.log("[BODIES] Snowball at: " + b.center);
 
             // If about to fall through floor, reverse y velocity:
             let collisionResult = checkMapComponentCollisions(b.center, b.linear_velocity, true)
