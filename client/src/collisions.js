@@ -4,6 +4,8 @@ import { mapComponents } from "./map.js";
 export const checkMapComponentCollisions = (posArray, velocityArray = null, isSnowball = false) => {
   let activeGround = CONST.MIN_Y
   let activeCeiling = 10000
+  let collision = false
+
   for (const wall of mapComponents) {
     // Extracting wall properties
     const PLAYER_WIDTH = 3
@@ -20,6 +22,8 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
                 if (isSnowball) {
                     velocityArray[2] = -1 * CONST.WALL_BOUNCE_FACTOR * velocityArray[2]
                     posArray[2] = velocityArray[2] > 0 ? maxZ : minZ
+
+                    collision = true;
                 }
                 else 
                     posArray[2] = posArray[2] > translate[2] ? maxZ : minZ
@@ -37,6 +41,8 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
                 if (isSnowball) {
                     velocityArray[0] = -1 * CONST.WALL_BOUNCE_FACTOR * velocityArray[0]
                     posArray[0] = velocityArray[0] > 0 ? maxX : minX
+
+                    collision = true;
                 }
                 else 
                     posArray[0] = posArray[0] > translate[0] ? maxX : minX
@@ -72,6 +78,6 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
 
     }
   }
-  activeGround += 2
-  return { activeCeiling, activeGround }
+  
+  return { activeCeiling, activeGround, collision }
 }

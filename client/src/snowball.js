@@ -1,11 +1,14 @@
 import {Body} from './body.js';
 import {defs, tiny} from '../examples/common.js';
+import {Test_Data} from './materials.js'
 
 // Why do I have to redeclare this when I already imported body.js??
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
 export class Snowball extends Body {
+    #collidedWithTarget;
+
     // **Body** can store and update the properties of a 3D body that incrementally
     // moves from its previous place due to velocities.  It conforms to the
     // approach outlined in the "Fix Your Timestep!" blog post by Glenn Fiedler.
@@ -13,11 +16,34 @@ export class Snowball extends Body {
         super(shape, material, size)
 
         this.throwerID = throwerID; //Identifies the player that threw the snowball
-        // Object.assign(this,
-        //     {shape, material, size})
+        this.#collidedWithTarget = false;
+        this.test_data = new Test_Data();
+
+        Object.assign(this,
+            {shape, material, size})
 
     }
 
+    timeSinceCollision(){
+        if(this.#collidedWithTarget) {
+            return this.material.localTime;
+        }
+
+        else
+            return 0.0;
+    }
+
+    hasCollided() {
+        return this.#collidedWithTarget;
+    }
+    indicateCollision()//Call this when a snowball hits a target, to indicate it should explode
+    {
+        this.#collidedWithTarget = true;
+
+        //TODO: change to shape to flat-shaded sphere and material to the explosion material
+        this.shape = this.test_data.shapes.snowball_flatshaded;
+        this.material = this.test_data.materials.snowballExplosionMtl.override({localTime: 0.0});
+    }
     getThrower()
     {
         return this.throwerID;
@@ -32,6 +58,10 @@ export class Snowball extends Body {
         return p.dot(p) < 1 + margin;
     }
 
+    slow_snowball()
+    {
+        this.linear_velocity = this.linear_velocity.times(0.0);
+    }
     emplace(location_matrix, linear_velocity, angular_velocity, spin_axis = vec3(0, 0, 0).randomized(1).normalized()) {                               // emplace(): assign the body's initial values, or overwrite them.
         this.center = location_matrix.times(vec4(0, 0, 0, 1)).to3();
         this.rotation = Mat4.translation(...this.center.times(-1)).times(location_matrix);
@@ -50,6 +80,8 @@ export class Snowball extends Body {
         // Linear velocity first, then angular:
         this.center = this.center.plus(this.linear_velocity.times(time_amount));
         this.rotation.pre_multiply(Mat4.rotation(time_amount * this.angular_velocity, ...this.spin_axis));
+
+        // this.material.localTime += time_amount;
     }
 
     // The following are our various functions for testing a single point,
