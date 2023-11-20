@@ -138,8 +138,7 @@ export class Particle_Shader extends Shader {
 
         if(material.hasOwnProperty('localTime')) {
             gl.uniform1f(gpu.localTime, material.localTime);
-            let time = material.localTime;
-            console.log("[SHADER] Snowball's localTime is " + time);
+            console.log("[SHADER] Snowball's localTime is " + material.localTime);
             // gl.vertexAttrib1f(gpu.localTime, material.localTime);
             //
             // gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 0, 0);

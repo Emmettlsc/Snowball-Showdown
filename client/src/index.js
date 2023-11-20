@@ -44,10 +44,10 @@ export class Simulation extends Scene {
                 b.advance(this.dt);
 
                 //Jankily update snowball time:
-                if(b.material.hasOwnProperty('localTime')) {
-                    // console.log("Snowball's localTime is " + b.material.localTime);
-                    b.material.localTime += this.dt;
-                }
+                // if(b.material.hasOwnProperty('localTime')) {
+                //     console.log("Snowball's localTime is " + b.material.localTime);
+                //     // b.material.localTime += 0.05;
+                // }
             }
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
@@ -301,7 +301,7 @@ export class Main_Demo extends Simulation {
                 new Snowball(
                     this.data.shapes.snowball2,
                     // this.snowballMtl,
-                    this.snowballExplosionMtl,
+                    this.snowballExplosionMtl.override({localTime: 0.0}),
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
                 ).emplace(
@@ -310,7 +310,7 @@ export class Main_Demo extends Simulation {
                     0
                 )
             )
-            console.log("Fired");
+            console.log("Fired snowball with localTime of " + this.bodies[this.bodies.length - 1].material.localTime);
              console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
 
             this.player.indicateFired();
