@@ -6,6 +6,7 @@ const {
     Light, Shape, Material, Shader, Texture, Scene, program
 } = tiny;
 
+//TODO: implement some sort of lifetime so that exploded particles disappear after some time
 
 export class Particle_Shader extends Shader {
     // **Phong_Shader** is a subclass of Shader, which stores and maanges a GPU program.

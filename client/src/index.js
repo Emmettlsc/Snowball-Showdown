@@ -274,12 +274,12 @@ export class Main_Demo extends Simulation {
         if (this.bodies.length === 0) { //bodies[0] is always the cube
             this.bodies.push(
                 new Body(
-                    this.data.shapes.cube, 
-                    this.inactive_color, 
+                    this.data.shapes.cube,
+                    this.inactive_color,
                     vec3(2, 2, 2)
                 ).emplace(
                     Mat4.translation(...vec3(0, 0, 0)),
-                    vec3(0, 0, 0), // vec3(0, -1, 0).randomized(2).normalized().times(3), 
+                    vec3(0, 0, 0), // vec3(0, -1, 0).randomized(2).normalized().times(3),
                     0
                 )
             );
@@ -350,12 +350,13 @@ export class Main_Demo extends Simulation {
                 targetCollide = true
                 console.log("Collision with cube");
 
-                //Change to explosion material
-                b.material = this.snowballExplosionMtl.override({localTime: 0.0});
-                // if(b.constructor.name === "Snowball")
-                // {
-                //     b.indicateCollision();
-                // }
+                if(b.constructor.name === "Snowball") { //Janky way of checking object type?
+                    //Change to explosion material
+                    b.material = this.snowballExplosionMtl.override({localTime: 0.0});
+
+                    // Slow it down so the explosion can be seen if it hits the center of the target
+                    b.slow_snowball();
+                }
 
                 // // Snowballs just disappear upon colliding with a cube
                 // if(b.constructor.name === "Snowball")

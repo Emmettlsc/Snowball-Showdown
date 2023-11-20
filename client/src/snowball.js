@@ -42,6 +42,10 @@ export class Snowball extends Body {
         return p.dot(p) < 1 + margin;
     }
 
+    slow_snowball()
+    {
+        this.linear_velocity = this.linear_velocity.times(0.5);
+    }
     emplace(location_matrix, linear_velocity, angular_velocity, spin_axis = vec3(0, 0, 0).randomized(1).normalized()) {                               // emplace(): assign the body's initial values, or overwrite them.
         this.center = location_matrix.times(vec4(0, 0, 0, 1)).to3();
         this.rotation = Mat4.translation(...this.center.times(-1)).times(location_matrix);
