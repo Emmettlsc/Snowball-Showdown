@@ -3,7 +3,7 @@ import {widgets} from '../tiny-graphics-widgets.js';
 // Pull these names into this module's scope for convenience:
 const {
     Vector, Vector3, vec, vec3, vec4, color, Matrix, Mat4,
-    Light, Shape, Material, Shader, Texture, Scene
+    Light, Shape, Material, Shader, Texture, Scene, program
 } = tiny;
 
 
@@ -30,8 +30,7 @@ export class Particle_Shader extends Shader {
                 uniform vec4 shape_color;
                 uniform vec3 squared_scale, camera_center;
         
-                uniform float time; 
-                uniform float startTime; 
+                uniform float localTime; 
                 
                 // Specifier "varying" means a variable's final value will be passed from the vertex shader
                 // on to the next phase (fragment shader), then interpolated per-fragment, weighted by the
@@ -95,8 +94,8 @@ export class Particle_Shader extends Shader {
                     normalvector_worldspace = normal; 
                     
                     vec4 offset = vec4(position, 1.0);
-                    float dist = 5.0;
-                    offset.xyz += normal * dist;
+                    float explosionSpeed = 1.0;
+                    offset.xyz += normal * explosionSpeed * localTime;
 
                     // gl_Position = projection_camera_model_transform * vec4( position, 1.0 ) * offset;
                     gl_Position = projection_camera_model_transform *  model_transform * offset; 
@@ -137,10 +136,19 @@ export class Particle_Shader extends Shader {
         gl.uniform1f(gpu.specularity, material.specularity);
         gl.uniform1f(gpu.smoothness, material.smoothness);
 
-        // if(material.localTime) {
-        //     gl.uniform1f(gpu.localTime, material.localTime);
-        //     console.log("Snowball's localTime is " + material.localTime);
-        // }
+        if(material.hasOwnProperty('localTime')) {
+            gl.uniform1f(gpu.localTime, material.localTime);
+            let time = material.localTime;
+            console.log("[SHADER] Snowball's localTime is " + time);
+            // gl.vertexAttrib1f(gpu.localTime, material.localTime);
+            //
+            // gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 0, 0);
+            // gpu.shader_attributes.localTime = time;
+        }
+        else {
+            console.log("[SHADER] has no localTime variable");
+        }
+
     }
 
     send_gpu_state(gl, gpu, gpu_state, model_transform) {
@@ -175,14 +183,8 @@ export class Particle_Shader extends Shader {
         gl.uniform4fv(gpu.light_colors, light_colors_flattened);
         gl.uniform1fv(gpu.light_attenuation_factors, gpu_state.lights.map(l => l.attenuation));
 
-
-        //Send the current time to the shader so it can calculate velocity
-        // Assign spawn time in the material????
-        // const startTime = gpu_state.animation_time;
-        // const currentTime = gpu_state.animation_delta_time;
-        // gl.uniform1f(gpu.time, currentTime);
-        // gl.uniform1f(gpu.startTime, startTime)
-        // console.log(startTime + " " + currentTime);
+        // Debugging
+        console.log(gpu);
 
     }
 
@@ -194,7 +196,7 @@ export class Particle_Shader extends Shader {
         // within this function, one data field at a time, to fully initialize the shader for a draw.
 
         // Fill in any missing fields in the Material object with custom defaults for this shader:
-        const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40};
+        const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40, localTime: 0.0};
         material = Object.assign({}, defaults, material);
 
         this.send_material(context, gpu_addresses, material);

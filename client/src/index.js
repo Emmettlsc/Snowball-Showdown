@@ -40,8 +40,15 @@ export class Simulation extends Scene {
         while (Math.abs(this.time_accumulator) >= this.dt) {
             // Single step of the simulation for all bodies:
             this.update_state(this.dt);
-            for (let b of this.bodies)
+            for (let b of this.bodies) {
                 b.advance(this.dt);
+
+                //Jankily update snowball time:
+                if(b.material.hasOwnProperty('localTime')) {
+                    // console.log("Snowball's localTime is " + b.material.localTime);
+                    b.material.localTime += this.dt;
+                }
+            }
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
             this.t += Math.sign(frame_time) * this.dt;
@@ -180,7 +187,7 @@ export class Main_Demo extends Simulation {
 
 
         //Initialize player class
-        let defaultFireSpeed= vec3(0, 6, 70);
+        let defaultFireSpeed= vec3(0, 6, 10);
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.player = new Player("Player1", defaultMoveSpeed, 0.5, defaultFireSpeed);
 
@@ -294,7 +301,7 @@ export class Main_Demo extends Simulation {
                 new Snowball(
                     this.data.shapes.snowball2,
                     // this.snowballMtl,
-                    this.snowballExplosionMtl.override({localTime: (this.localTime + dt)}),
+                    this.snowballExplosionMtl,
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
                 ).emplace(
@@ -343,7 +350,7 @@ export class Main_Demo extends Simulation {
                 console.log("Collision with cube");
 
                 //Change to explosion material
-                b.material = this.materials.explosion;
+                // b.material = this.materials.explosionSnowballMtl;
 
                 // // Snowballs just disappear upon colliding with a cube
                 // if(b.constructor.name === "Snowball")
