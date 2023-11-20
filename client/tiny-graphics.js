@@ -1118,7 +1118,8 @@ const Shader = tiny.Shader =
             context.useProgram(gpu_instance.program);
 
             // --- Send over all the values needed by this particular shader to the GPU: ---
-            this.update_GPU(context, gpu_instance.gpu_addresses, program_state, model_transform, material);
+            this.update_GPU(context, gpu_instance.gpu_addresses, program_state, model_transform, material, gpu_instance.program);
+            // console.log("UPDATED GPU");
 
             // --- Turn on all the correct attributes and make sure they're pointing to the correct ranges in GPU memory. ---
             for (let [attr_name, attribute] of Object.entries(gpu_instance.gpu_addresses.shader_attributes)) {

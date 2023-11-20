@@ -51,7 +51,7 @@ export class Snowball extends Body {
         this.center = this.center.plus(this.linear_velocity.times(time_amount));
         this.rotation.pre_multiply(Mat4.rotation(time_amount * this.angular_velocity, ...this.spin_axis));
 
-        this.material.localTime += time_amount;
+        // this.material.localTime += time_amount;
     }
 
     // The following are our various functions for testing a single point,

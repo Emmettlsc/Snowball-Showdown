@@ -44,10 +44,10 @@ export class Simulation extends Scene {
                 b.advance(this.dt);
 
                 //Jankily update snowball time:
-                // if(b.material.hasOwnProperty('localTime')) {
-                //     console.log("Snowball's localTime is " + b.material.localTime);
-                //     // b.material.localTime += 0.05;
-                // }
+                if(b.material.hasOwnProperty('localTime')) {
+                    console.log("Snowball's localTime is " + b.material.localTime);
+                    b.material.localTime += this.dt;
+                }
             }
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
