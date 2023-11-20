@@ -12,7 +12,7 @@ export class Snowball extends Body {
     // **Body** can store and update the properties of a 3D body that incrementally
     // moves from its previous place due to velocities.  It conforms to the
     // approach outlined in the "Fix Your Timestep!" blog post by Glenn Fiedler.
-    constructor(shape, material, size, throwerID) {
+    constructor(shape, material, size, throwerID = "nullThrowerID") {
         super(shape, material, size)
 
         this.throwerID = throwerID; //Identifies the player that threw the snowball

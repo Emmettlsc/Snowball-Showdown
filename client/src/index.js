@@ -43,6 +43,9 @@ export class Simulation extends Scene {
                     b.material.localTime += this.dt;
                 }
             }
+            for(let s of this.snowflakes) {
+                s.advance(this.dt);
+            }
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
             this.t += Math.sign(frame_time) * this.dt;
@@ -54,6 +57,8 @@ export class Simulation extends Scene {
         // two latest states and display the result.
         let alpha = this.time_accumulator / this.dt;
         for (let b of this.bodies) b.blend_state(alpha);
+
+        for (let s of this.snowflakes) s.blend_state(alpha); //Very important to allow snowflakes to move
     }
 
     make_control_panel() {
@@ -84,6 +89,12 @@ export class Simulation extends Scene {
             // console.log("Body has material: " + b.material.constructor.name)
             // console.log(b.constructor.name)
         }
+
+        for(let s of this.snowflakes) {
+            console.log ("Drawing snowflake");
+            s.shape.draw(context, program_state, s.drawn_location, s.material);
+        }
+
     }
 
     update_state(dt)      // update_state(): Your subclass of Simulation has to override this abstract function.
@@ -92,37 +103,6 @@ export class Simulation extends Scene {
     }
 }
 
-
-// export class Test_Data {
-//     // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
-//     constructor() {
-//         this.textures = {
-//             rgb: new Texture("assets/rgb.jpg"),
-//             earth: new Texture("assets/earth.gif"),
-//             grid: new Texture("assets/stars.png"),
-//             stars: new Texture("assets/stars.png"),
-//             text: new Texture("assets/text.png"),
-//         }
-//         this.shapes = {
-//             donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
-//             cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
-//             capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
-//             ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
-//             cube: new defs.Cube(),
-//             prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
-//             gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-//             donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
-//
-//             snowball2: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(3),
-//         };
-//     }
-//
-//     random_shape(shape_list = this.shapes) {
-//         // random_shape():  Extract a random shape from this.shapes.
-//         const shape_names = Object.keys(shape_list);
-//         return shape_list[shape_names[~~(shape_names.length * Math.random())]]
-//     }
-// }
 
 export class Main_Demo extends Simulation {
     // ** Inertia_Demo** demonstration: This scene lets random initial momentums
@@ -136,28 +116,6 @@ export class Main_Demo extends Simulation {
 
         this.materials = Object.assign({}, this.data.materials);
 
-        // this.material = new Material(shader, {
-        //     color: color(.4, .8, .4, 1),
-        //     ambient: .4, texture: this.data.textures.stars
-        // })
-        // this.snowballMtl = new Material(new defs.Phong_Shader(), {
-        //     color: color(1, 1, 1, 1),
-        //     ambient: 0.8,
-        // })
-        //
-        // this.snowballExplosionMtl = new Material(new Particle_Shader(), {
-        //     color: color(1, 1, 1, 1),
-        //     ambient: 0.8,
-        //     localTime: 0.0,
-        // })
-        //
-        //
-        //
-        // this.inactive_color = new Material(shader, {
-        //     color: color(.5, .5, .5, 1), ambient: .2,
-        //     texture: this.data.textures.rgb
-        // });
-        // this.active_color = this.inactive_color.override({color: color(.5, 0, 0, 1), ambient: .5});
 
         this.colliders = [
             {intersect_test: Body.intersect_sphere, points: new defs.Subdivision_Sphere(1), leeway: .5},
@@ -192,6 +150,12 @@ export class Main_Demo extends Simulation {
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
+
+
+        // Initialize snowflakes to create snowfall effect
+        this.snowflakes = [];
+
+
 
     }
 
@@ -311,7 +275,7 @@ export class Main_Demo extends Simulation {
         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
 
-            if(b.hasCollided()) {
+            if(b.constructor.name === "Snowball" && b.hasCollided()) {
                 if(b.timeSinceCollision() > 1.0){
                     this.bodies.splice(i, 1);
                     i--;
@@ -349,44 +313,42 @@ export class Main_Demo extends Simulation {
             //         b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
             // }
 
-            // if (targetCollide) {
-            //     console.log("Collision");
-            //     continue
-            // }
-            //bodies[0] is the cube
-
-            // if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
-            //     targetCollide = true
-            //     console.log("Collision with cube");
-
-            // if(b.constructor.name === "Snowball") { //Janky way of checking object type?
-            //         //Change to explosion material
-            //         b.material = this.snowballExplosionMtl.override({localTime: 0.0});
-            //
-            //         // Slow it down so the explosion can be seen if it hits the center of the target
-            //         b.slow_snowball();
-            // }
-
-
-            //     // // Snowballs just disappear upon colliding with a cube
-            //     // if(b.constructor.name === "Snowball")
-            //     // {
-            //     //     console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
-            //     //     this.bodies.splice(i, i);
-            //     //     i--;
-            //     // }
-            // }
-            // else 
-            //     targetCollide = false
 
 
         }
+
+        for(let s of this.snowflakes) {
+            s.linear_velocity[1] += dt * -9.8; //Gravity
+        }
+
         // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
         // Delete bodies that stop or stray too far away:
         // this.bodies = this.bodies.filter(b => b.center.norm() < 70 && b.linear_velocity.norm() > 0.2);
         // this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
         
         // TODO: add check for snowballs that are far from map center and remove them to improve efficiency
+
+
+        // Add snowflakes each frame
+        for(let i = 0; i < 3; i++) {
+            let snowflakeLocation = Mat4.identity();
+            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+
+            // Make snowflakes mini donuts for better visibility while debugging
+            this.snowflakes.push(
+                new Body(
+                    this.data.shapes.cube,
+                    this.materials.material,
+                    vec3(0.3, 0.3, 0.3),
+                ).emplace(
+                    snowflakeLocation,
+                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                    0
+                )
+            )
+
+        }
+
     }
 
     display(context, program_state) { 
