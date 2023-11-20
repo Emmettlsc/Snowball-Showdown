@@ -97,7 +97,7 @@ export class Particle_Shader extends Shader {
                     float explosionSpeed = 1.0;
                     // offset.xyz += normal * explosionSpeed *  -5.0 * sin(localTime) * 0.5 + 0.5;
                     // offset.xyz += normal * explosionSpeed *  -2.0 * sin(5.0 * localTime); // Lets you see snowball rapidly expand and contract as it travels 
-                    offset.xyz += normal * explosionSpeed *  0.25 * exp(localTime);
+                    offset.xyz += normal * explosionSpeed *  -5.0 * exp(localTime);
                   
                     
 
@@ -122,12 +122,12 @@ export class Particle_Shader extends Shader {
         return this.shared_glsl_code() + `
 
                 void main(){                                                           
-                    // // Compute an initial (ambient) color:
-                    // gl_FragColor = vec4( shape_color.xyz * ambient, shape_color.w );
-                    // // Compute the final color with contributions from lights:
-                    // gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
+                    // Compute an initial (ambient) color:
+                    gl_FragColor = vec4( shape_color.xyz * ambient, shape_color.w );
+                    // Compute the final color with contributions from lights:
+                    gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
                     
-                    gl_FragColor = vec4(normalvector_worldspace, 1.0); // For debugging purposes so it's easier to see the triangles from the explosion 
+                    // gl_FragColor = vec4(normalvector_worldspace, 1.0); // For debugging purposes so it's easier to see the triangles from the explosion 
                   } `;
     }
 

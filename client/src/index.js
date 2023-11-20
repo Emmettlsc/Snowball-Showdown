@@ -87,6 +87,7 @@ export class Simulation extends Scene {
         // Draw each shape at its current location:
         for (let b of this.bodies) {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
+            // console.log("Body has material: " + b.material.constructor.name)
             // console.log(b.constructor.name)
         }
     }
@@ -187,7 +188,7 @@ export class Main_Demo extends Simulation {
 
 
         //Initialize player class
-        let defaultFireSpeed= vec3(0, 6, 10);
+        let defaultFireSpeed= vec3(0, 6, 40);
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.player = new Player("Player1", defaultMoveSpeed, 0.5, defaultFireSpeed);
 
@@ -300,8 +301,8 @@ export class Main_Demo extends Simulation {
             this.bodies.push(
                 new Snowball(
                     this.data.shapes.snowball2,
-                    // this.snowballMtl,
-                    this.snowballExplosionMtl.override({localTime: 0.0}),
+                     this.snowballMtl,
+                    // this.snowballMtl.override({localTime: 0.0}),
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
                 ).emplace(
@@ -350,7 +351,11 @@ export class Main_Demo extends Simulation {
                 console.log("Collision with cube");
 
                 //Change to explosion material
-                // b.material = this.materials.explosionSnowballMtl;
+                b.material = this.snowballExplosionMtl.override({localTime: 0.0});
+                // if(b.constructor.name === "Snowball")
+                // {
+                //     b.indicateCollision();
+                // }
 
                 // // Snowballs just disappear upon colliding with a cube
                 // if(b.constructor.name === "Snowball")

@@ -6,6 +6,8 @@ import {defs, tiny} from '../examples/common.js';
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
 export class Snowball extends Body {
+    #collidedWithTarget;
+
     // **Body** can store and update the properties of a 3D body that incrementally
     // moves from its previous place due to velocities.  It conforms to the
     // approach outlined in the "Fix Your Timestep!" blog post by Glenn Fiedler.
@@ -13,11 +15,19 @@ export class Snowball extends Body {
         super(shape, material, size)
 
         this.throwerID = throwerID; //Identifies the player that threw the snowball
-        // Object.assign(this,
-        //     {shape, material, size})
+        this.#collidedWithTarget = false;
+        Object.assign(this,
+            {shape, material, size})
 
     }
 
+    hasCollided() {
+        return this.#collidedWithTarget;
+    }
+    indicateCollision()//Call this when a snowball hits a target, to indicate it should explode
+    {
+        this.#collidedWithTarget = true;
+    }
     getThrower()
     {
         return this.throwerID;
