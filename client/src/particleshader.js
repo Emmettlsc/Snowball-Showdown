@@ -94,8 +94,11 @@ export class Particle_Shader extends Shader {
                     normalvector_worldspace = normal; 
                     
                     vec4 offset = vec4(position, 1.0);
-                    float explosionSpeed = 5.0;
-                    offset.xyz += normal * explosionSpeed *  -5.0 * sin(localTime) * 0.5 + 0.5;
+                    float explosionSpeed = 1.0;
+                    // offset.xyz += normal * explosionSpeed *  -5.0 * sin(localTime) * 0.5 + 0.5;
+                    // offset.xyz += normal * explosionSpeed *  -2.0 * sin(5.0 * localTime); // Lets you see snowball rapidly expand and contract as it travels 
+                    offset.xyz += normal * explosionSpeed *  0.25 * exp(localTime);
+                  
                     
 
                     // gl_Position = projection_camera_model_transform * vec4( position, 1.0 ) * offset;
