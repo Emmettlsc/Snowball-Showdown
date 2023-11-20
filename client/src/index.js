@@ -161,9 +161,9 @@ export class Main_Demo extends Simulation {
         this.moveActive = false
         this.downKeys = {}
         this.mouseMovementAmt = [0, 0]
-        this.cameraRotation = [0, 0]
+        this.cameraRotation = [0, 0] //[0, Math.PI / 8]
         this.userMovementAmt = [0, 0, 0]
-        this.userPos = [0, 0, 40]
+        this.userPos = [0, 2, 0]
         this.userVel = [0, 0, 0]
         this.userCanJump = true
 
@@ -367,23 +367,6 @@ export class Main_Demo extends Simulation {
                 .times(Mat4.scale(50, 50, 1)),
             this.material.override(this.data.textures.earth)
         )
-        // border walls
-        // for (let i = 0; i < 0; i++) {
-        //     const translation = [
-        //         [-50, 0, 0],
-        //         [50, 0, 0],
-        //         [0, 0, -50],
-        //         [0, 0, 50]
-        //     ][i]
-        //     const rotation = (i < 2 ? [0, 1, 0] : [0, 0, 1])
-        //     this.shapes.square.draw(
-        //         context, program_state,
-        //         Mat4.translation(...translation)
-        //             .times(Mat4.rotation(Math.PI / 2, ...rotation))
-        //             .times(Mat4.scale(50, 50, 1)),
-        //         this.snowballMtl.override({ color: color(0.6, 0.6, 0.6, 1) })
-        //     )
-        // }
 
         for (const piece of mapComponents) {
             this.shapes.cube.draw(
@@ -442,6 +425,10 @@ export class Main_Demo extends Simulation {
             this.userVel[1] = 0
         }
 
+        // if (this.chargeTime > 1){ 
+        //     this.cameraRotation[0] += 0.01 * (Math.random() - 0.5)
+        //     this.cameraRotation[1] += 0.01 * (Math.random() - 0.5)
+        // }
         program_state.camera_transform = Mat4.rotation(-this.cameraRotation[0], 0, 1, 0)
             .times(Mat4.rotation(-this.cameraRotation[1], 1, 0, 0));
         program_state.camera_inverse = Mat4.rotation(+this.cameraRotation[1], 1, 0, 0)

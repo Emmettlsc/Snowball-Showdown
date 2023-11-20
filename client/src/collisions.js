@@ -72,6 +72,6 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
 
     }
   }
-
+  activeGround += 2
   return { activeCeiling, activeGround }
 }
