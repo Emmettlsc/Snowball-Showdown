@@ -1,5 +1,6 @@
 import {Body} from './body.js';
 import {defs, tiny} from '../examples/common.js';
+import {Test_Data} from './materials.js'
 
 // Why do I have to redeclare this when I already imported body.js??
 // Pull these names into this module's scope for convenience:
@@ -16,6 +17,8 @@ export class Snowball extends Body {
 
         this.throwerID = throwerID; //Identifies the player that threw the snowball
         this.#collidedWithTarget = false;
+        this.test_data = new Test_Data();
+
         Object.assign(this,
             {shape, material, size})
 
@@ -27,6 +30,10 @@ export class Snowball extends Body {
     indicateCollision()//Call this when a snowball hits a target, to indicate it should explode
     {
         this.#collidedWithTarget = true;
+
+        //TODO: change to shape to flat-shaded sphere and material to the explosion material
+        this.shape = this.test_data.shapes.snowball_flatshaded;
+        this.material = this.test_data.materials.snowballExplosionMtl.override({localTime: 0.0});
     }
     getThrower()
     {
@@ -44,7 +51,7 @@ export class Snowball extends Body {
 
     slow_snowball()
     {
-        this.linear_velocity = this.linear_velocity.times(0.5);
+        this.linear_velocity = this.linear_velocity.times(0.0);
     }
     emplace(location_matrix, linear_velocity, angular_velocity, spin_axis = vec3(0, 0, 0).randomized(1).normalized()) {                               // emplace(): assign the body's initial values, or overwrite them.
         this.center = location_matrix.times(vec4(0, 0, 0, 1)).to3();

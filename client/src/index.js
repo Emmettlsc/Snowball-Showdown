@@ -314,14 +314,24 @@ export class Main_Demo extends Simulation {
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
 
+            if(b.hasCollided())
+                console.log("[BODIES] Snowball at: " + b.center);
+
             // If about to fall through floor, reverse y velocity:
-            checkMapComponentCollisions(b.center, b.linear_velocity, true)
+            let collisionResult = checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (
                 b.center[0] < CONST.MAX_MAP_X && b.center[0] > CONST.MIN_MAP_X && 
                 b.center[2] < CONST.MAX_MAP_Z && b.center[2] > CONST.MIN_MAP_Z && 
                 b.center[1] < -1 && b.linear_velocity[1] < 0
             )
                 b.linear_velocity[1] *= -CONST.FLOOR_BOUNCE_FACTOR;
+
+            //TODO: test explosion particle effects by making snowballs explode on collision
+            if(collisionResult.collision) {
+                console.log("[BODIES] Collided snowball at: " + b.center);
+                b.slow_snowball();
+                b.indicateCollision();
+            }
 
             // Don't make snowballs bounce off walls
             // if(b.constructor.name !== "Snowball") {

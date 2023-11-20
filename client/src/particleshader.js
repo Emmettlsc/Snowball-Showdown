@@ -94,16 +94,15 @@ export class Particle_Shader extends Shader {
                     // Need normal vector to tell triangles which way they should explode 
                     normalvector_worldspace = normal; 
                     
-                    vec4 offset = vec4(position, 1.0);
+                    vec4 new_position = vec4(position, 1.0);
                     float explosionSpeed = 1.0;
                     // offset.xyz += normal * explosionSpeed *  -5.0 * sin(localTime) * 0.5 + 0.5;
                     // offset.xyz += normal * explosionSpeed *  -2.0 * sin(5.0 * localTime); // Lets you see snowball rapidly expand and contract as it travels 
-                    offset.xyz += normal * explosionSpeed *  -5.0 * exp(localTime);
-                  
                     
+                    new_position.xyz += normal * explosionSpeed * exp(localTime);
 
                     // gl_Position = projection_camera_model_transform * vec4( position, 1.0 ) * offset;
-                    gl_Position = projection_camera_model_transform *  model_transform * offset; 
+                    gl_Position = projection_camera_model_transform * new_position; 
                     
                     // The final normal vector in screen space.
                     N = normalize( mat3( model_transform ) * normal / squared_scale);
