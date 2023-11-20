@@ -283,10 +283,9 @@ export class Main_Demo extends Simulation {
 
             this.bodies.push(
                 new Snowball(
-                    // this.data.shapes.snowball2,
-                    //  this.snowballMtl,
                     this.data.shapes.ball, 
-                    this.materials.snowballMtl,
+                    // this.materials.snowballMtl,
+                    this.materials.snowballTexturedMtl,
 
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()

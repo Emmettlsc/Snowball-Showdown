@@ -1,5 +1,7 @@
 import {defs, tiny} from '../examples/common.js';
 import {Particle_Shader} from "./particleshader.js";
+import {Snow_Shader} from "./snowballshader.js";
+
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
 export class Test_Data {
@@ -52,6 +54,11 @@ export class Test_Data {
             active_color: new Material(shader, {
                 color: color(.5, 0, 0, 1), ambient: .5,
                 texture: this.textures.rgb
+            }),
+
+            snowballTexturedMtl: new Material(new defs.Textured_Phong(), {
+                ambient: 1.0,
+                texture: new Texture("assets/snow.jpg"),
             }),
 
         };
