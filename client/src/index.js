@@ -10,9 +10,6 @@ import * as CONST from './constants.js'
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
 
-const SNOWBALL_CHARGE_FACTOR = 5.0;
-
-
 export class Simulation extends Scene {
     // **Simulation** manages the stepping of simulation time.  Subclass it when making
     // a Scene that is a physics demo.  This technique is careful to totally decouple
@@ -60,8 +57,8 @@ export class Simulation extends Scene {
 
     make_control_panel() {
         // make_control_panel(): Create the buttons for interacting with simulation time.
-        this.key_triggered_button("Speed up time", ["Shift", "T"], () => this.time_scale *= 5);
-        this.key_triggered_button("Slow down time", ["t"], () => this.time_scale /= 5);
+        // this.key_triggered_button("Speed up time", ["Shift", "T"], () => this.time_scale *= 5);
+        // this.key_triggered_button("Slow down time", ["t"], () => this.time_scale /= 5);
         this.new_line();
         this.live_string(box => {
             box.textContent = "Time scale: " + this.time_scale
@@ -170,7 +167,7 @@ export class Main_Demo extends Simulation {
         window.addEventListener('keyup', e => this.handleKeyup(e))
         window.addEventListener('mousedown', e => this.handleMousedown(e))
         window.addEventListener('mousemove', e => this.handleMousemove(e))
-        window.addEventListener('mouseup', e => this.handleKeyup({ key: 'mouse' }))
+        window.addEventListener('mouseup', e => this.handleMouseup(e))
 
         this.moveActive = false
         this.downKeys = {}
@@ -183,9 +180,11 @@ export class Main_Demo extends Simulation {
 
 
         //Initialize player class
-        let defaultFireSpeed= vec3(0, 6, 40);
+
+        let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
-        this.player = new Player("Player1", defaultMoveSpeed, 0.5, defaultFireSpeed);
+        this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
+        this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed); 
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
@@ -193,21 +192,6 @@ export class Main_Demo extends Simulation {
     }
 
     handleKeydown(e) {
-        if (e.key === 'q') {
-            console.log('pressed snowball key')
-
-            //TODO: save a state and charge the shot accordingly
-            if(this.charging) {
-                this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
-            }
-            if(!this.charging)
-                this.charging = true;
-            //         this.userCanShoot = true
-            //         this.userZoom = false
-            //         this.activeGround = CONST.MIN_Y
-        }
-
-
         if (e.key === 'p') {
             const canvas = document.getElementsByTagName('canvas')?.[0]
             canvas.requestFullscreen()
@@ -225,25 +209,28 @@ export class Main_Demo extends Simulation {
         if (['w', 'a', 's', 'd', ' ', 'mouse'].includes(e.key) && this.downKeys[e.key]) {
             delete this.downKeys[e.key]
         }
-
-        //TODO: handle keyup of snowball key
-        if(e.key === 'q'){
-            this.charging = false;
-            this.requestThrowSnowball = true
-        }
-
     }
 
     handleMousedown(e) {
-        this.moveActive = true
-        this.downKeys['mouse'] = true
         e.target?.requestPointerLock()
+        this.moveActive = true
+
+        this.downKeys['mouse'] = true
+        console.log('throw snowball')
+
+        if(!this.charging)
+            this.charging = true;
+    }
+
+    handleMouseup(e) {
+        console.log('mouse up')
+        this.charging = false
+        this.requestThrowSnowball = true
     }
 
     handleMousemove(e) {
         if (!this.moveActive)
             return
-        // console.log(e.movementX, e.movementY)
         this.mouseMovementAmt[0] += e.movementX
         this.mouseMovementAmt[1] += e.movementY
     }
@@ -266,10 +253,14 @@ export class Main_Demo extends Simulation {
             this.userCanJump = false
         }
 
-        if (this.downKeys['mouse'] && this.userCanShoot) {
-            this.requestThrowSnowball = true
-            this.userCanShoot = false
-            setTimeout(() => this.userCanShoot = true, CONST.USER_SHOOT_DELAY)
+        if (this.downKeys['mouse']) {
+            if(this.charging) {
+                console.log('charging snowball: ', this.chargeTime)
+                this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
+            }
+            // this.requestThrowSnowball = true
+            // this.userCanShoot = false
+            // setTimeout(() => this.userCanShoot = true, CONST.USER_SHOOT_DELAY)
         }
     }
 
@@ -279,35 +270,32 @@ export class Main_Demo extends Simulation {
 
     update_state(dt) {
         if (this.requestThrowSnowball && this.player.canFire()) {
-            const s = 40
 
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
-            // console.log(this.camera_transform)
             this.requestThrowSnowball = false
-
-             const playerThrowSpeed = this.player.getFireSpeed();
-            let snowballVelocity = vec3 ( playerThrowSpeed[0] ,
-                playerThrowSpeed[1] + (SNOWBALL_CHARGE_FACTOR * this.chargeTime),
-                userDirection[2] * playerThrowSpeed[2]);
-            console.log("snowballVelocity: " + snowballVelocity);
-
+            const chargeAmount = Math.min( Math.max(this.chargeTime, 1.0), 2 )
+            const snowballVelocity = vec3(...userDirection.map(v =>  chargeAmount * CONST.SNOWBALL_CHARGE_FACTOR * v))
+            // const playerThrowSpeed = this.player.getFireSpeed();
 
             this.bodies.push(
                 new Snowball(
-                    this.data.shapes.snowball2,
-                     this.snowballMtl,
-                    // this.snowballMtl.override({localTime: 0.0}),
+                    // this.data.shapes.snowball2,
+                    //  this.snowballMtl,
+                    this.data.shapes.ball, 
+                    this.snowballMtl,
+
                     vec3(0.7, 0.7, 0.7),
                     this.player.getPlayerID()
-
                 ).emplace(
                     Mat4.translation(...userDirection.map(v => 5 * v)).times(this.camera_transform),
                     snowballVelocity, // vec3(0, -1, 0).randomized(2).normalized().times(3),
                     0
                 )
             )
+
             console.log("Fired snowball with localTime of " + this.bodies[this.bodies.length - 1].material.localTime);
-             console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
+            console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
+
 
             this.player.indicateFired();
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
@@ -317,8 +305,6 @@ export class Main_Demo extends Simulation {
              this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
          }
 
-        // this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
-        let targetCollide = false
         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
             // Gravity on Earth, where 1 unit in world space = 1 meter:
@@ -326,50 +312,59 @@ export class Main_Demo extends Simulation {
 
             // If about to fall through floor, reverse y velocity:
             checkMapComponentCollisions(b.center, b.linear_velocity, true)
-            if (b.center[1] < -1 && b.linear_velocity[1] < 0)
-                b.linear_velocity[1] *= -FLOOR_BOUNCE_FACTOR;
+            if (
+                b.center[0] < CONST.MAX_MAP_X && b.center[0] > CONST.MIN_MAP_X && 
+                b.center[2] < CONST.MAX_MAP_Z && b.center[2] > CONST.MIN_MAP_Z && 
+                b.center[1] < -1 && b.linear_velocity[1] < 0
+            )
+                b.linear_velocity[1] *= -CONST.FLOOR_BOUNCE_FACTOR;
 
             // Don't make snowballs bounce off walls
-            if(b.constructor.name !== "Snowball") {
-                if ((b.center[0] < MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > MAX_MAP_X && b.linear_velocity[0] > 0))
-                    b.linear_velocity[0] *= -WALL_BOUNCE_FACTOR;
-                if ((b.center[2] < MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > MAX_MAP_Z && b.linear_velocity[2] > 0))
-                    b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
-            }
+            // if(b.constructor.name !== "Snowball") {
+            //     if ((b.center[0] < MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > MAX_MAP_X && b.linear_velocity[0] > 0))
+            //         b.linear_velocity[0] *= -WALL_BOUNCE_FACTOR;
+            //     if ((b.center[2] < MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > MAX_MAP_Z && b.linear_velocity[2] > 0))
+            //         b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
+            // }
 
-            if (targetCollide) {
-                console.log("Collision");
-                continue
-            }
+            // if (targetCollide) {
+            //     console.log("Collision");
+            //     continue
+            // }
             //bodies[0] is the cube
-            if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
-                targetCollide = true
-                console.log("Collision with cube");
 
-                if(b.constructor.name === "Snowball") { //Janky way of checking object type?
-                    //Change to explosion material
-                    b.material = this.snowballExplosionMtl.override({localTime: 0.0});
+            // if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
+            //     targetCollide = true
+            //     console.log("Collision with cube");
 
-                    // Slow it down so the explosion can be seen if it hits the center of the target
-                    b.slow_snowball();
-                }
+            // if(b.constructor.name === "Snowball") { //Janky way of checking object type?
+            //         //Change to explosion material
+            //         b.material = this.snowballExplosionMtl.override({localTime: 0.0});
+            //
+            //         // Slow it down so the explosion can be seen if it hits the center of the target
+            //         b.slow_snowball();
+            // }
 
-                // // Snowballs just disappear upon colliding with a cube
-                // if(b.constructor.name === "Snowball")
-                // {
-                //     console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
-                //     this.bodies.splice(i, i);
-                //     i--;
-                // }
-            }
-            else 
-                targetCollide = false
+
+            //     // // Snowballs just disappear upon colliding with a cube
+            //     // if(b.constructor.name === "Snowball")
+            //     // {
+            //     //     console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
+            //     //     this.bodies.splice(i, i);
+            //     //     i--;
+            //     // }
+            // }
+            // else 
+            //     targetCollide = false
+
 
         }
         // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
         // Delete bodies that stop or stray too far away:
         // this.bodies = this.bodies.filter(b => b.center.norm() < 70 && b.linear_velocity.norm() > 0.2);
-        this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
+        // this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
+        
+        // TODO: add check for snowballs that are far from map center and remove them to improve efficiency
     }
 
     display(context, program_state) { 
@@ -399,22 +394,22 @@ export class Main_Demo extends Simulation {
             this.material.override(this.data.textures.earth)
         )
         // border walls
-        for (let i = 0; i < 0; i++) {
-            const translation = [
-                [-50, 0, 0],
-                [50, 0, 0],
-                [0, 0, -50],
-                [0, 0, 50]
-            ][i]
-            const rotation = (i < 2 ? [0, 1, 0] : [0, 0, 1])
-            this.shapes.square.draw(
-                context, program_state,
-                Mat4.translation(...translation)
-                    .times(Mat4.rotation(Math.PI / 2, ...rotation))
-                    .times(Mat4.scale(50, 50, 1)),
-                this.snowballMtl.override({ color: color(0.6, 0.6, 0.6, 1) })
-            )
-        }
+        // for (let i = 0; i < 0; i++) {
+        //     const translation = [
+        //         [-50, 0, 0],
+        //         [50, 0, 0],
+        //         [0, 0, -50],
+        //         [0, 0, 50]
+        //     ][i]
+        //     const rotation = (i < 2 ? [0, 1, 0] : [0, 0, 1])
+        //     this.shapes.square.draw(
+        //         context, program_state,
+        //         Mat4.translation(...translation)
+        //             .times(Mat4.rotation(Math.PI / 2, ...rotation))
+        //             .times(Mat4.scale(50, 50, 1)),
+        //         this.snowballMtl.override({ color: color(0.6, 0.6, 0.6, 1) })
+        //     )
+        // }
 
         for (const piece of mapComponents) {
             this.shapes.cube.draw(
@@ -451,14 +446,15 @@ export class Main_Demo extends Simulation {
         const activeCeiling = compCollisionData.activeCeiling
         this.activeGround = compCollisionData.activeGround
         // check if user is out of bounds
-        // if (this.userPos[0] < MIN_MAP_X)
-        //     this.userPos[0] = MIN_MAP_X
-        // else if (this.userPos[0] > MAX_MAP_X)
-        //     this.userPos[0] = MAX_MAP_X
-        // if (this.userPos[2] < MIN_MAP_Z)
-        //     this.userPos[2] = MIN_MAP_Z
-        // else if (this.userPos[2] > MAX_MAP_Z)
-        //     this.userPos[2] = MAX_MAP_Z
+        if (this.userPos[0] < CONST.MIN_MAP_X)
+            this.userPos[0] = CONST.MIN_MAP_X
+        else if (this.userPos[0] > CONST.MAX_MAP_X)
+            this.userPos[0] = CONST.MAX_MAP_X
+        if (this.userPos[2] < CONST.MIN_MAP_Z)
+            this.userPos[2] = CONST.MIN_MAP_Z
+        else if (this.userPos[2] > CONST.MAX_MAP_Z)
+            this.userPos[2] = CONST.MAX_MAP_Z
+
         if (this.userPos[1] <= this.activeGround && (this.userVel[1] <= 0 || Math.abs(this.userVel[1] < 0.1)) ) {
             this.userVel[1] = Math.min(0.3 * (this.activeGround - this.userPos[1]), 0.1)
             this.userCanJump = true

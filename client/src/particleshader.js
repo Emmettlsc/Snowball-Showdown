@@ -195,9 +195,6 @@ export class Particle_Shader extends Shader {
         gl.uniform4fv(gpu.light_colors, light_colors_flattened);
         gl.uniform1fv(gpu.light_attenuation_factors, gpu_state.lights.map(l => l.attenuation));
 
-        // Debugging
-        // console.log(gpu);
-        // console.log(gl);
 
     }
 
