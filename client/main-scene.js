@@ -17,7 +17,7 @@ const {
 
 // ******************** Extra step only for when executing on a local machine:
 //                      Load any more files in your directory and copy them into "defs."
-//                      (On the web, a server should instead just pack all these as well
+//                      (On the web, a backend should instead just pack all these as well
 //                      as common.js into one file for you, such as "dependencies.js")
 
 const Minimal_Webgl_Demo = defs.Minimal_Webgl_Demo;

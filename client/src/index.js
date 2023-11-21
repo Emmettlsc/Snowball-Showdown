@@ -1,5 +1,11 @@
 import {defs, tiny} from '../examples/common.js';
 
+//========== WEBSOCKET INTEGRATION BELOW ======================
+
+
+//========== WEBSOCKET INTEGRATION ABOVE ======================
+
+
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 //outsource to constants
@@ -194,14 +200,30 @@ export class Test_Data {
     }
 }
 
+class Player {
+    constructor(id, x, y, z) {
+        this.id = id
+        this.x = x
+        this.y = y
+        this.z = z
+    }
+}
+
+
 export class Main_Demo extends Simulation {
     // ** Inertia_Demo** demonstration: This scene lets random initial momentums
     // carry several bodies until they fall due to gravity and bounce.
     constructor() {
         super({ time_scale: 0.2 ** 4 });
+
+        this.initWebSocket();
+        this.players = new Map();
+        this.id = null;
+
         this.data = new Test_Data();
         this.shapes = Object.assign({}, this.data.shapes);
         this.shapes.square = new defs.Square();
+        this.shapes.cube = new defs.Cube();
         const shader = new defs.Fake_Bump_Map(1);
         this.material = new Material(shader, {
             color: color(.4, .8, .4, 1),
@@ -240,6 +262,76 @@ export class Main_Demo extends Simulation {
         this.userPos = [0, 0, 40]
         this.userVel = [0, 0, 0]
         this.userCanJump = true
+    }
+
+    initWebSocket() {
+        this.socket = new WebSocket('ws://localhost:8080/ws');
+
+        this.socket.onopen = () => {
+            console.log('WebSocket connection established');
+        };
+
+        this.socket.onmessage = (event) => {
+            this.handleWebSocketMessage(event);
+        };
+
+        this.socket.onerror = (event) => {
+            console.error('WebSocket error:', event);
+        };
+
+        this.socket.onclose = (event) => {
+            console.log('WebSocket connection closed');
+        };
+    }
+
+    sendPlayerAction(action) {
+        if (this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(JSON.stringify(action));
+        }
+    }
+
+
+    handleWebSocketMessage(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'move') {
+            // Handle move event
+            const id = data.id
+            const position = { x: data.x, y: data.y, z: data.z };
+            this.addOrUpdatePlayerMarker(id, position);
+        } else if (data.type === 'assignID') {
+            this.id = data.id;
+        }
+    }
+
+    addOrUpdatePlayerMarker(id, position) {
+        if (id === this.id) {
+            return;
+        }
+        if (this.players.has(id)) {
+            const player = this.players.get(id);
+            player.x = position.x;
+            player.y = position.y;
+            player.z = position.z;
+        } else {
+            const player = new Player(id, position.x, position.y, position.z);
+            this.players.set(id, player);
+        }
+
+        // // Assuming `position` is an object with x, y, z coordinates
+        // // Replace the following code with whatever logic you use to add objects to your game
+        // const s = 40; // speed or size factor for the snowball
+        // this.bodies.push(
+        //     new Body(
+        //         this.data.shapes.ball,
+        //         this.snowballMtl,
+        //         vec3(0.7, 0.7, 0.7) // size of the marker
+        //     ).emplace(
+        //         Mat4.translation(position.x, position.y, position.z),
+        //         vec3(0, 0, 0), // initial velocity (static in this case)
+        //         0 // initial angle
+        //     )
+        // );
     }
 
     handleKeydown(e) {
@@ -333,6 +425,9 @@ export class Main_Demo extends Simulation {
                     0
                 )
             )
+                    
+            this.sendPlayerAction({ id: this.id, type: 'snowball-throw', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], vx: .7, vy: .7, vz: .7})
+
         }
 
         this.bodies[0].inverse = Mat4.inverse(this.bodies[0].drawn_location)
@@ -401,6 +496,16 @@ export class Main_Demo extends Simulation {
             )
         }
 
+        //draw all the players
+        this.players.forEach((player) => {
+            this.shapes.square.draw(
+                context, program_state, 
+                Mat4.translation(player.x, player.y, player.z)
+                .times(Mat4.scale(1, 2, 1)),
+                this.snowballMtl
+                );
+        });
+
         // outsource to contants
         const USER_ROTATION_SPEED_X = 0.005
         const USER_ROTATION_SPEED_Y = 0.005
@@ -410,8 +515,14 @@ export class Main_Demo extends Simulation {
 
         this.checkAllDownKeys()
 
+
+        // console.log( this.cameraRotation[1])
+
         this.cameraRotation[0] += USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
-        this.cameraRotation[1] += USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
+        if (this.cameraRotation[1] >= -1.5 && this.cameraRotation[1] + USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1] > -1.5 
+            && this.cameraRotation[1] <= 1.5 && this.cameraRotation[1] + USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1] < 1.5) {
+            this.cameraRotation[1] += USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
+        }
         this.mouseMovementAmt = [0, 0]
         
         // calculate new user position
@@ -447,6 +558,7 @@ export class Main_Demo extends Simulation {
             this.userVel[1] *= -.3;
 
         this.userPos[1] += this.userVel[1]
+        this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2] });
         // this.userMovementAmt = [0, 0]
 
         program_state.camera_transform = Mat4.rotation(-this.cameraRotation[0], 0, 1, 0)
