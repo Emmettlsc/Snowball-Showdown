@@ -64,9 +64,10 @@ export class Test_Data {
             }),
 
             snowflakeMtl: new Material(new Snowflake_Shader(), {
-                ambient: 0.7,
-                color: color(1, 1, 1, 1),
+                ambient: 1.0,
+                // color: color(1, 1, 1, 1),
                 localTime: 0.0,
+                texture: new Texture("assets/snow.jpg"),
             }),
 
             white: new Material(shader, {

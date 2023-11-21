@@ -95,7 +95,7 @@ export class Simulation extends Scene {
         }
 
         for(let s of this.snowflakes) {
-            console.log ("Drawing snowflake");
+            // console.log ("Drawing snowflake");
             s.shape.draw(context, program_state, s.drawn_location, s.material);
         }
 
@@ -329,7 +329,7 @@ export class Main_Demo extends Simulation {
             // Ideally would delete them after they fall through the floor, but since the movement is done in the shader, there's no way to get that value easily from here
             if(s.material.localTime >= 5.0) {
                 this.snowflakes.splice(i, 1);
-                console.log("Deleting snowflake");
+                // console.log("Deleting snowflake");
                 i--;
             }
             else{

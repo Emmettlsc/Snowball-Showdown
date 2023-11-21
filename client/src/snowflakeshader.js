@@ -80,7 +80,10 @@ export class Snowflake_Shader extends Particle_Shader {
         return this.shared_glsl_code() + `
                 attribute vec3 position, normal;           
                 attribute vec4 color; 
-                // attribute float localTime; 
+                
+                // For texture: 
+                varying vec2 f_tex_coord;
+                attribute vec2 texture_coord;
                                  
                 // Position is expressed in object coordinates.
                 uniform mat4 model_transform;
@@ -113,6 +116,9 @@ export class Snowflake_Shader extends Particle_Shader {
                     // The final normal vector in screen space.
                     N = normalize( mat3( model_transform ) * normal / squared_scale);
                     vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
+                    
+                    // Turn the per-vertex texture coordinate into an interpolated variable.
+                    f_tex_coord = texture_coord;
                      
                   } 
                 
@@ -126,14 +132,23 @@ export class Snowflake_Shader extends Particle_Shader {
         // A fragment is a pixel that's overlapped by the current triangle.
         // Fragments affect the final image or get discarded due to depth.
         return this.shared_glsl_code() + `
+                varying vec2 f_tex_coord;
+                uniform sampler2D texture;
 
                 void main(){                                                           
+                    // // Compute an initial (ambient) color:
+                    // gl_FragColor = vec4( shape_color.xyz * ambient, shape_color.w );
+                    // // Compute the final color with contributions from lights:
+                    // gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
+                    //
+                    
+                    // Sample the texture image in the correct place:
+                    vec4 tex_color = texture2D( texture, f_tex_coord );
+                    if( tex_color.w < .01 ) discard;
                     // Compute an initial (ambient) color:
-                    gl_FragColor = vec4( shape_color.xyz * ambient, shape_color.w );
+                    gl_FragColor = vec4( ( tex_color.xyz + shape_color.xyz ) * ambient, shape_color.w * tex_color.w ); 
                     // Compute the final color with contributions from lights:
                     gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
-                    
-                    // gl_FragColor = vec4(normalvector_worldspace, 1.0); // For debugging purposes so it's easier to see the triangles from the explosion 
                   } `;
     }
 
@@ -213,6 +228,21 @@ export class Snowflake_Shader extends Particle_Shader {
         // Fill in any missing fields in the Material object with custom defaults for this shader:
         const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40, localTime: 0.0};
         material = Object.assign({}, defaults, material);
+
+        if (material.texture && material.texture.ready) {
+            // Select texture unit 0 for the fragment shader Sampler2D uniform called "texture":
+            context.uniform1i(gpu_addresses.texture, 0);
+            // For this draw, use the texture image from correct the GPU buffer:
+            material.texture.activate(context);
+        }
+        if(!material.texture){
+            console.log("No texture!");
+        }
+        else if(!material.texture.ready) {
+            console.log("There is a texture but it's not ready!");
+        }
+
+
 
         this.send_material(context, gpu_addresses, material, program);
         this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform, program);
