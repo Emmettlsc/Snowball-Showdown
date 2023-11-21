@@ -98,9 +98,15 @@ export class Main_Demo extends Simulation {
     // carry several bodies until they fall due to gravity and bounce.
     constructor() {
         super({ time_scale: 0.2 ** 4 });
+
+        this.initWebSocket();
+        this.players = new Map();
+        this.id = null;
+
         this.data = new Test_Data();
         this.shapes = Object.assign({}, this.data.shapes);
         this.shapes.square = new defs.Square();
+        this.shapes.cube = new defs.Cube();
         const shader = new defs.Fake_Bump_Map(1);
 
         this.materials = Object.assign({}, this.data.materials);
@@ -139,6 +145,76 @@ export class Main_Demo extends Simulation {
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
 
+    }
+
+    initWebSocket() {
+        this.socket = new WebSocket('ws://localhost:8080/ws');
+
+        this.socket.onopen = () => {
+            console.log('WebSocket connection established');
+        };
+
+        this.socket.onmessage = (event) => {
+            this.handleWebSocketMessage(event);
+        };
+
+        this.socket.onerror = (event) => {
+            console.error('WebSocket error:', event);
+        };
+
+        this.socket.onclose = (event) => {
+            console.log('WebSocket connection closed');
+        };
+    }
+
+    sendPlayerAction(action) {
+        if (this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(JSON.stringify(action));
+        }
+    }
+
+
+    handleWebSocketMessage(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'move') {
+            // Handle move event
+            const id = data.id
+            const position = { x: data.x, y: data.y, z: data.z };
+            this.addOrUpdatePlayerMarker(id, position);
+        } else if (data.type === 'assignID') {
+            this.id = data.id;
+        }
+    }
+
+    addOrUpdatePlayerMarker(id, position) {
+        if (id === this.id) {
+            return;
+        }
+        if (this.players.has(id)) {
+            const player = this.players.get(id);
+            player.x = position.x;
+            player.y = position.y;
+            player.z = position.z;
+        } else {
+            const player = new Player(id, position.x, position.y, position.z);
+            this.players.set(id, player);
+        }
+
+        // // Assuming `position` is an object with x, y, z coordinates
+        // // Replace the following code with whatever logic you use to add objects to your game
+        // const s = 40; // speed or size factor for the snowball
+        // this.bodies.push(
+        //     new Body(
+        //         this.data.shapes.ball,
+        //         this.snowballMtl,
+        //         vec3(0.7, 0.7, 0.7) // size of the marker
+        //     ).emplace(
+        //         Mat4.translation(position.x, position.y, position.z),
+        //         vec3(0, 0, 0), // initial velocity (static in this case)
+        //         0 // initial angle
+        //     )
+        // );
     }
 
     handleKeydown(e) {
@@ -248,6 +324,9 @@ export class Main_Demo extends Simulation {
 
             this.player.indicateFired();
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
+                    
+            this.sendPlayerAction({ id: this.id, type: 'snowball-throw', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], vx: .7, vy: .7, vz: .7})
+
         }
          else if(this.requestThrowSnowball && !this.player.canFire()) {
              console.log("Player not allowed to fire. Fire rate is " + this.player.getFireRate());
@@ -340,8 +419,21 @@ export class Main_Demo extends Simulation {
         }
 
         this.checkAllDownKeys()
-        this.cameraRotation[0] += CONST.USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
-        this.cameraRotation[1] += CONST.USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
+        //draw all the players
+        this.players.forEach((player) => {
+            this.shapes.square.draw(
+                context, program_state, 
+                Mat4.translation(player.x, player.y, player.z)
+                .times(Mat4.scale(1, 2, 1)),
+                this.snowballMtl
+                );
+        });
+
+        this.cameraRotation[0] +=CONST.USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
+        if (this.cameraRotation[1] >= -1.5 && this.cameraRotation[1] + CONST.USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1] > -1.5 
+            && this.cameraRotation[1] <= 1.5 && this.cameraRotation[1] + CONST.USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1] < 1.5) {
+            this.cameraRotation[1] += CONST.USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1]
+        }
         this.mouseMovementAmt = [0, 0]
         
         // calculate new user position
@@ -380,6 +472,8 @@ export class Main_Demo extends Simulation {
         else 
             this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
         this.userPos[1] += this.userVel[1]
+        this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2] });
+        // this.userMovementAmt = [0, 0]
 
         if (this.userPos[1] > activeCeiling - 0.1){
             this.userPos[1] = activeCeiling - 0.1
