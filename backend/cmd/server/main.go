@@ -35,7 +35,7 @@ func main() {
 		}
 	})
 
-	serverAddr := "localhost:8080"
+	serverAddr := ":8080"
 
 	//start the HTTP server
 	log.Printf("Server starting on %s", serverAddr)
