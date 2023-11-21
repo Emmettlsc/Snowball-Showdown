@@ -167,7 +167,7 @@ export class Main_Demo extends Simulation {
     }
 
     initWebSocket() {
-        this.socket = new WebSocket('ws://localhost:8080/ws');
+        this.socket = new WebSocket('ws://184.72.14.50:8080/ws');
 
         this.socket.onopen = () => {
             console.log('WebSocket connection established');
@@ -203,6 +203,29 @@ export class Main_Demo extends Simulation {
             this.addOrUpdatePlayerMarker(id, position);
         } else if (data.type === 'assignID') {
             this.id = data.id;
+        } else if (data.type === 'playerDisconnected') {
+            this.players.delete(data.playerId)
+        } else if (data.type === 'snowball-throw') {
+            console.log(data)
+            const userDirection = [data.usr_dir1, data.usr_dir2, data.usr_dir3]
+
+            this.requestThrowSnowball = false
+            const chargeAmount = data.chargeAmount
+            const snowballVelocity = vec3(data.vx, data.vy, data.vz)
+            
+            this.bodies.push(
+                new Snowball(
+                    this.data.shapes.ball, 
+                    this.materials.snowballTexturedMtl,
+                    vec3(0.7, 0.7, 0.7),
+                    this.player
+                ).emplace(
+                    Mat4.translation(...userDirection.map(v => 5 * v)).times(data.matrix),
+                    snowballVelocity, // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                    0
+                )
+            )
+            console.log(this.bodies)
         }
     }
 
@@ -215,7 +238,7 @@ export class Main_Demo extends Simulation {
             player.x = position.x;
             player.y = position.y;
             player.z = position.z;
-        } else {
+        } else if (id) {
             const player = new Player(id, position.x, position.y, position.z);
             this.players.set(id, player);
         }
@@ -296,6 +319,25 @@ export class Main_Demo extends Simulation {
         return this.material.override(color(.6, .6 * Math.random(), .6 * Math.random(), 1));
     }
 
+    // checkPlayerCollisions(x, y, z) {
+    //     for (const player of this.players) {
+    //         console.log(player.x)
+    //         console.log(Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2 + (player.z - z) ** 2))
+    //         if (Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2 + (player.z - z) ** 2) < 20.0) {
+    //             return true;
+    //         }
+    //     }
+    // }
+    checkPlayerCollisions(x, y, z) {
+        let ret = false
+        this.players.forEach((player) => {
+            if (Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ) < 2) {
+                ret = true
+            }
+        });
+        return ret
+    }
+
     update_state(dt) {
         if (this.requestThrowSnowball && this.player.canFire()) {
             if (false) { //for map creation only
@@ -333,8 +375,25 @@ export class Main_Demo extends Simulation {
 
             this.player.indicateFired();
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
-                    
-            this.sendPlayerAction({ id: this.id, type: 'snowball-throw', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], vx: .7, vy: .7, vz: .7})
+            
+            console.log("TEST")
+            console.log(this.camera_transform)
+            this.sendPlayerAction({ 
+                id: this.id, 
+                type: 'snowball-throw', 
+                x: this.userPos[0], 
+                y: this.userPos[1], 
+                z: this.userPos[2], 
+                vx: snowballVelocity[0], 
+                vy: snowballVelocity[1], 
+                vz: snowballVelocity[2],
+                usr_dir1: userDirection[0], 
+                usr_dir2: userDirection[1], 
+                usr_dir3: userDirection[2],
+                chargeAmount: chargeAmount, 
+                matrix: this.camera_transform,
+            })
+            console.log("TEST2")
 
         }
          else if(this.requestThrowSnowball && !this.player.canFire()) {
@@ -342,8 +401,9 @@ export class Main_Demo extends Simulation {
              this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
          }
 
-        for (let i = 0; i < this.bodies.length; i++) {
+         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
+
 
             if(b.constructor.name === "Snowball" && b.hasCollided()) {
                 if(b.timeSinceCollision() > 1.0){
@@ -357,6 +417,15 @@ export class Main_Demo extends Simulation {
 
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
+
+            // Player collision detection w/ snowballs here:
+            let collisionWithPlayer = this.checkPlayerCollisions(b.center[0], b.center[1], b.center[2]);
+            if(collisionWithPlayer) { 
+                console.log("HERE")
+                b.slow_snowball();
+                b.indicateCollision();
+            }
+
             // If about to fall through floor, reverse y velocity:
             let collisionResult = checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (
@@ -480,11 +549,11 @@ export class Main_Demo extends Simulation {
         this.checkAllDownKeys()
         //draw all the players
         this.players.forEach((player) => {
-            this.shapes.square.draw(
-                context, program_state, 
+            this.shapes.cube.draw(
+                context, program_state,
                 Mat4.translation(player.x, player.y, player.z)
                 .times(Mat4.scale(1, 2, 1)),
-                this.snowballMtl
+                this.materials.wallMtl
                 );
         });
 

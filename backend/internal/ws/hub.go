@@ -59,13 +59,32 @@ func (h *Hub) Run() {
 				Type: "assignID",
 				ID:   clientID,
 			})
+			//fmt.Println(string(idMessage[:]))
 			client.send <- idMessage
 
 		case client := <-h.unregister:
-			//removes client un page reload
-			fmt.Println(client)
 			if _, ok := h.clients[client]; ok {
+				//notify other clients about the disconnection
+				disconnectMessage, _ := json.Marshal(struct {
+					Type     string `json:"type"`
+					PlayerID string `json:"playerId"`
+				}{
+					Type:     "playerDisconnected",
+					PlayerID: client.ID,
+				})
+				//fmt.Println(string(disconnectMessage[:]))
+
+				//broadcast the disconnect message to other clients
+				for otherClient := range h.clients {
+					if otherClient != client {
+						otherClient.send <- disconnectMessage
+					}
+				}
+
+				fmt.Println("REMOVING PLAYER")
+				//clean up the disconnected client
 				delete(h.clients, client)
+				h.gameState.RemovePlayer(client.ID)
 				close(client.send)
 			}
 
@@ -74,6 +93,10 @@ func (h *Hub) Run() {
 			for client := range h.clients {
 				var jsonMap map[string]interface{}
 				json.Unmarshal([]byte(message), &jsonMap)
+
+				if jsonMap["type"] == "snowball-throw" {
+					fmt.Println(jsonMap)
+				}
 
 				if client.ID != jsonMap["id"] { //only send to other clients
 					select {
