@@ -43,6 +43,11 @@ export class Simulation extends Scene {
                     b.material.localTime += this.dt;
                 }
             }
+
+            for(let s of this.snowflakes) {
+                s.material.localTime += this.dt;
+            }
+
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
             this.t += Math.sign(frame_time) * this.dt;
@@ -54,6 +59,8 @@ export class Simulation extends Scene {
         // two latest states and display the result.
         let alpha = this.time_accumulator / this.dt;
         for (let b of this.bodies) b.blend_state(alpha);
+
+        for (let s of this.snowflakes) s.blend_state(alpha); //Very important to allow snowflakes to move
     }
 
     make_control_panel() {
@@ -84,6 +91,12 @@ export class Simulation extends Scene {
             // console.log("Body has material: " + b.material.constructor.name)
             // console.log(b.constructor.name)
         }
+
+        for(let s of this.snowflakes) {
+            // console.log ("Drawing snowflake");
+            s.shape.draw(context, program_state, s.drawn_location, s.material);
+        }
+
     }
 
     update_state(dt)      // update_state(): Your subclass of Simulation has to override this abstract function.
@@ -144,6 +157,12 @@ export class Main_Demo extends Simulation {
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
+
+
+        // Initialize snowflakes to create snowfall effect
+        this.snowflakes = [];
+
+
 
     }
 
@@ -336,7 +355,7 @@ export class Main_Demo extends Simulation {
         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
 
-            if(b.hasCollided()) {
+            if(b.constructor.name === "Snowball" && b.hasCollided()) {
                 if(b.timeSinceCollision() > 1.0){
                     this.bodies.splice(i, 1);
                     i--;
@@ -362,9 +381,59 @@ export class Main_Demo extends Simulation {
                 b.slow_snowball();
                 b.indicateCollision();
             }
+
+
+
+
         }
-    
+
+        console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
+        for(let i = 0; i < this.snowflakes.length; i++) {
+
+            let s = this.snowflakes[i];
+            // Remove snowflakes that have been alive for a while.
+            // Ideally would delete them after they fall through the floor, but since the movement is done in the shader, there's no way to get that value easily from here
+            if(s.material.localTime >= 5.0) {
+                this.snowflakes.splice(i, 1);
+                // console.log("Deleting snowflake");
+                i--;
+            }
+            else{
+                // Comment out  --- want to implement in shader not in js
+                // s.linear_velocity[1] += dt * -9.8; //Gravity
+            }
+
+
+        }
+
+        // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
+        // Delete bodies that stop or stray too far away:
+        // this.bodies = this.bodies.filter(b => b.center.norm() < 70 && b.linear_velocity.norm() > 0.2);
+        // this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
+        
         // TODO: add check for snowballs that are far from map center and remove them to improve efficiency
+
+
+        // Add snowflakes each frame
+        for(let i = 0; i < 3; i++) {
+            //TODO: only spawn snowflakes within the user's field of view
+            let snowflakeLocation = Mat4.identity();
+            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+
+            this.snowflakes.push(
+                new Body(
+                    this.data.shapes.snowflake,
+                    this.materials.snowflakeMtl.override({localTime: 0.0}),
+                    vec3(0.3, 0.3, 0.3),
+                ).emplace(
+                    snowflakeLocation,
+                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                    0
+                )
+            )
+
+        }
+
     }
 
     display(context, program_state) { 
@@ -455,6 +524,14 @@ export class Main_Demo extends Simulation {
         const compCollisionData = checkMapComponentCollisions(this.userPos)
         const activeCeiling = compCollisionData.activeCeiling
         this.activeGround = compCollisionData.activeGround
+
+        // use constant, handle death
+        if (this.userPos[1] <= -18) {
+            this.userPos = genRandomStartingPos()
+            this.cameraRotation = [this.userPos[2] < 0 ? Math.PI : 0, 0]
+            this.userVel = [0, 0, 0]
+            console.log('handle death here')
+        }
         // check if user is out of bounds
         // if (this.userPos[0] < CONST.MIN_MAP_X)
         //     this.userPos[0] = CONST.MIN_MAP_X

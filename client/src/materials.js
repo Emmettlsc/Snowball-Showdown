@@ -1,6 +1,6 @@
 import {defs, tiny} from '../examples/common.js';
 import {Particle_Shader} from "./particleshader.js";
-import {Snow_Shader} from "./snowballshader.js";
+import {Snowflake_Shader} from "./snowflakeshader.js";
 
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
@@ -26,6 +26,8 @@ export class Test_Data {
             donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
 
             snowball_flatshaded: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(3),
+
+            snowflake: new defs.Triangle,
         };
 
         const shader = new defs.Fake_Bump_Map(1);
@@ -49,6 +51,18 @@ export class Test_Data {
             fullGround:          new Material(new defs.Textured_Phong(), { ambient: 0.6, texture: new Texture("assets/snow.jpg"), color: color(0.6, 0.6, 1, 1)   }),
             backgroundOne:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a1_c2.png")   }),
             backgroundTwo:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a2.png")   }),
+
+            snowflakeMtl: new Material(new Snowflake_Shader(), {
+                ambient: 1.0,
+                // color: color(1, 1, 1, 1),
+                localTime: 0.0,
+                texture: new Texture("assets/snow.jpg"),
+            }),
+
+            white: new Material(shader, {
+                color: color(0, 0, 0, 1),
+                ambient: .7,
+            }),
 
         };
 
