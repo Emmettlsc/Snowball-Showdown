@@ -99,10 +99,15 @@ export class Snowflake_Shader extends Particle_Shader {
                     
                     vec4 new_position = vec4(position, 1.0);
                     float fallSpeed = 45.0;
+                    float windSpeedX = 45.0; 
+                    float windSpeedZ = 15.0; 
 
                     new_position.y -= fallSpeed * (localTime);
+                    
+                    // Add in some wind: 
+                    new_position.x += windSpeedX * cos(localTime); 
+                    new_position.z += windSpeedZ * sin(localTime); 
 
-                    // gl_Position = projection_camera_model_transform * vec4( position, 1.0 ) * offset;
                     gl_Position = projection_camera_model_transform * new_position; 
                     
                     // The final normal vector in screen space.
