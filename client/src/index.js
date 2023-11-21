@@ -317,8 +317,20 @@ export class Main_Demo extends Simulation {
 
         }
 
-        for(let s of this.snowflakes) {
-            s.linear_velocity[1] += dt * -9.8; //Gravity
+        console.log("There are " + this.snowflakes.length + " in the scene");
+        for(let i = 0; i < this.snowflakes.length; i++) {
+
+            let s = this.snowflakes[i];
+            if(s.center[1] <= 0) {  // Remove snowflakes that have fallen through the floor
+                this.snowflakes.splice(i, 1);
+                console.log("Deleting snowflake");
+                i--;
+            }
+            else{
+                s.linear_velocity[1] += dt * -9.8; //Gravity
+            }
+
+
         }
 
         // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
@@ -331,14 +343,15 @@ export class Main_Demo extends Simulation {
 
         // Add snowflakes each frame
         for(let i = 0; i < 3; i++) {
+            //TODO: only spawn snowflakes within the user's field of view
             let snowflakeLocation = Mat4.identity();
             snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
 
             // Make snowflakes mini donuts for better visibility while debugging
             this.snowflakes.push(
                 new Body(
-                    this.data.shapes.cube,
-                    this.materials.material,
+                    this.data.shapes.snowflake,
+                    this.materials.white,
                     vec3(0.3, 0.3, 0.3),
                 ).emplace(
                     snowflakeLocation,
