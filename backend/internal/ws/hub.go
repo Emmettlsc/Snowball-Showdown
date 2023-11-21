@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/emmettlsc/Snowball-Showdown/internal/game"
 	"github.com/google/uuid"
 )
@@ -80,6 +81,7 @@ func (h *Hub) Run() {
 					}
 				}
 
+				fmt.Println("REMOVING PLAYER")
 				//clean up the disconnected client
 				delete(h.clients, client)
 				h.gameState.RemovePlayer(client.ID)
@@ -91,6 +93,10 @@ func (h *Hub) Run() {
 			for client := range h.clients {
 				var jsonMap map[string]interface{}
 				json.Unmarshal([]byte(message), &jsonMap)
+
+				if jsonMap["type"] == "snowball-throw" {
+					fmt.Println(jsonMap)
+				}
 
 				if client.ID != jsonMap["id"] { //only send to other clients
 					select {

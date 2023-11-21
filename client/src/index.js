@@ -205,6 +205,27 @@ export class Main_Demo extends Simulation {
             this.id = data.id;
         } else if (data.type === 'playerDisconnected') {
             this.players.delete(data.playerId)
+        } else if (data.type === 'snowball-throw') {
+            console.log(data)
+            const userDirection = [data.usr_dir1, data.usr_dir2, data.usr_dir3]
+
+            this.requestThrowSnowball = false
+            const chargeAmount = data.chargeAmount
+            const snowballVelocity = vec3(data.vx, data.vy, data.vz)
+            
+            this.bodies.push(
+                new Snowball(
+                    this.data.shapes.ball, 
+                    this.materials.snowballTexturedMtl,
+                    vec3(0.7, 0.7, 0.7),
+                    this.player
+                ).emplace(
+                    Mat4.translation(...userDirection.map(v => 5 * v)).times(data.matrix),
+                    snowballVelocity, // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                    0
+                )
+            )
+            console.log(this.bodies)
         }
     }
 
@@ -327,7 +348,6 @@ export class Main_Demo extends Simulation {
     checkPlayerCollisions(x, y, z) {
         let ret = false
         this.players.forEach((player) => {
-            console.log(Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ))
             if (Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ) < 2) {
                 ret = true
             }
@@ -365,8 +385,25 @@ export class Main_Demo extends Simulation {
 
             this.player.indicateFired();
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
-                    
-            this.sendPlayerAction({ id: this.id, type: 'snowball-throw', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], vx: .7, vy: .7, vz: .7})
+            
+            console.log("TEST")
+            console.log(this.camera_transform)
+            this.sendPlayerAction({ 
+                id: this.id, 
+                type: 'snowball-throw', 
+                x: this.userPos[0], 
+                y: this.userPos[1], 
+                z: this.userPos[2], 
+                vx: snowballVelocity[0], 
+                vy: snowballVelocity[1], 
+                vz: snowballVelocity[2],
+                usr_dir1: userDirection[0], 
+                usr_dir2: userDirection[1], 
+                usr_dir3: userDirection[2],
+                chargeAmount: chargeAmount, 
+                matrix: this.camera_transform,
+            })
+            console.log("TEST2")
 
         }
          else if(this.requestThrowSnowball && !this.player.canFire()) {
