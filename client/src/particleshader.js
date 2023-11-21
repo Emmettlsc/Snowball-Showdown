@@ -153,10 +153,10 @@ export class Particle_Shader extends Shader {
             gl.useProgram(program); //PLS
 
 
-            console.log("[SHADER] Snowball's previous GPU localTime: " + gl.getUniform(program, gpu.localTime));
-            console.log("[SHADER] Snowball's material localTime is " + material.localTime);
+            // console.log("[SHADER] Snowball's previous GPU localTime: " + gl.getUniform(program, gpu.localTime));
+            // console.log("[SHADER] Snowball's material localTime is " + material.localTime);
+            // console.log("[SHADER] Snowball's GPU localTime: " + gl.getUniform(program, gpu.localTime));
             gl.uniform1f(gpu.localTime, material.localTime);
-            console.log("[SHADER] Snowball's GPU localTime: " + gl.getUniform(program, gpu.localTime));
             // gl.vertexAttrib1f(gpu.localTime, material.localTime);
             //
             // gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 0, 0);

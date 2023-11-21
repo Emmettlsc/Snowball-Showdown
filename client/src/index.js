@@ -3,7 +3,7 @@ import {Body} from './body.js'
 import {Snowball} from './snowball.js'
 import {Player} from "./player.js";
 import {Particle_Shader} from "./particleshader.js";
-import { mapComponents } from './map.js';
+import { mapComponents, genRandomStartingPos } from './map.js';
 import { checkMapComponentCollisions } from './collisions.js';
 import * as CONST from './constants.js'
 import {Test_Data} from './materials.js'
@@ -39,7 +39,7 @@ export class Simulation extends Scene {
 
                 //Jankily update snowball time:
                 if(b.material.hasOwnProperty('localTime')) {
-                    console.log("Snowball's localTime is " + b.material.localTime);
+                    // console.log("Snowball's localTime is " + b.material.localTime);
                     b.material.localTime += this.dt;
                 }
             }
@@ -122,9 +122,9 @@ export class Main_Demo extends Simulation {
         this.moveActive = false
         this.downKeys = {}
         this.mouseMovementAmt = [0, 0]
-        this.cameraRotation = [0, 0] //[0, Math.PI / 8]
         this.userMovementAmt = [0, 0, 0]
-        this.userPos = [0, 2, 0]
+        this.userPos = genRandomStartingPos()
+        this.cameraRotation = [this.userPos[2] < 0 ? Math.PI : 0, 0]
         this.userVel = [0, 0, 0]
         this.userCanJump = true
 
@@ -166,16 +166,15 @@ export class Main_Demo extends Simulation {
         this.moveActive = true
 
         this.downKeys['mouse'] = true
-        console.log('throw snowball')
 
         if(!this.charging)
             this.charging = true;
     }
 
     handleMouseup(e) {
-        console.log('mouse up')
         this.charging = false
         this.requestThrowSnowball = true
+        document.getElementById('chargebar').style.opacity = 0
     }
 
     handleMousemove(e) {
@@ -207,6 +206,7 @@ export class Main_Demo extends Simulation {
             if(this.charging) {
                 console.log('charging snowball: ', this.chargeTime)
                 this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
+                    document.getElementById('chargebar').style.opacity = this.chargeTime < 1 ? 0.1 : (this.chargeTime - 1)
             }
             // this.requestThrowSnowball = true
             // this.userCanShoot = false
@@ -242,8 +242,8 @@ export class Main_Demo extends Simulation {
                 )
             )
 
-            console.log("Fired snowball with localTime of " + this.bodies[this.bodies.length - 1].material.localTime);
-            console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
+            // console.log("Fired snowball with localTime of " + this.bodies[this.bodies.length - 1].material.localTime);
+            // console.log(this.player.getPlayerID() + " has thrown a snowball. Snowball knows it as " + this.bodies[this.bodies.length - 1].throwerID);
 
 
             this.player.indicateFired();
@@ -269,8 +269,6 @@ export class Main_Demo extends Simulation {
 
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
-
-
             // If about to fall through floor, reverse y velocity:
             let collisionResult = checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (
@@ -280,58 +278,13 @@ export class Main_Demo extends Simulation {
             )
                 b.linear_velocity[1] *= -CONST.FLOOR_BOUNCE_FACTOR;
 
-            //TODO: test explosion particle effects by making snowballs explode on collision
             if(collisionResult.collision) {
-                console.log("[BODIES] Collided snowball at: " + b.center);
+                // console.log("[BODIES] Collided snowball at: " + b.center);
                 b.slow_snowball();
                 b.indicateCollision();
             }
-
-            // Don't make snowballs bounce off walls
-            // if(b.constructor.name !== "Snowball") {
-            //     if ((b.center[0] < MIN_MAP_X && b.linear_velocity[0] < 0) || (b.center[0] > MAX_MAP_X && b.linear_velocity[0] > 0))
-            //         b.linear_velocity[0] *= -WALL_BOUNCE_FACTOR;
-            //     if ((b.center[2] < MIN_MAP_Z && b.linear_velocity[2] < 0) || (b.center[2] > MAX_MAP_Z && b.linear_velocity[2] > 0))
-            //         b.linear_velocity[2] *= -WALL_BOUNCE_FACTOR;
-            // }
-
-            // if (targetCollide) {
-            //     console.log("Collision");
-            //     continue
-            // }
-            //bodies[0] is the cube
-
-            // if (this.bodies[0].check_if_colliding(b, this.colliders[0])) {
-            //     targetCollide = true
-            //     console.log("Collision with cube");
-
-            // if(b.constructor.name === "Snowball") { //Janky way of checking object type?
-            //         //Change to explosion material
-            //         b.material = this.snowballExplosionMtl.override({localTime: 0.0});
-            //
-            //         // Slow it down so the explosion can be seen if it hits the center of the target
-            //         b.slow_snowball();
-            // }
-
-
-            //     // // Snowballs just disappear upon colliding with a cube
-            //     // if(b.constructor.name === "Snowball")
-            //     // {
-            //     //     console.log(this.player.getPlayerID() + " has thrown a snowball that hit the cube");
-            //     //     this.bodies.splice(i, i);
-            //     //     i--;
-            //     // }
-            // }
-            // else 
-            //     targetCollide = false
-
-
         }
-        // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
-        // Delete bodies that stop or stray too far away:
-        // this.bodies = this.bodies.filter(b => b.center.norm() < 70 && b.linear_velocity.norm() > 0.2);
-        // this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
-        
+    
         // TODO: add check for snowballs that are far from map center and remove them to improve efficiency
     }
 
@@ -351,7 +304,7 @@ export class Main_Demo extends Simulation {
         );
         program_state.lights = [
             // new Light(vec4(0, -100, 0, 1), color(0, 0, 1, 1), 10000),
-            new Light(vec4(0, 160, 0, 1), color(1, 1, 1, 1), 100000)
+            // new Light(vec4(0, 160, 0, 1), color(1, 1, 1, 1), 100000)
         ];
         // Draw the ground
         this.shapes.square.draw(
@@ -360,6 +313,20 @@ export class Main_Demo extends Simulation {
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
                 .times(Mat4.scale(50, 50, 1)),
             this.materials.snowgroundMtl
+        )
+        this.shapes.square.draw(
+            context, program_state, 
+            Mat4.translation(0, -20, 0)
+                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                .times(Mat4.scale(200, 200, 1)),
+            this.materials.fullGround
+        )
+        this.shapes.ball.draw(
+            context, program_state,
+            Mat4.translation(0, 0, 0)
+                .times(Mat4.rotation(0, 1, 0, 0))
+                .times(Mat4.scale(200, 200, 200)),
+            this.materials.backgroundOne
         )
 
         for (const piece of mapComponents) {
@@ -397,14 +364,14 @@ export class Main_Demo extends Simulation {
         const activeCeiling = compCollisionData.activeCeiling
         this.activeGround = compCollisionData.activeGround
         // check if user is out of bounds
-        if (this.userPos[0] < CONST.MIN_MAP_X)
-            this.userPos[0] = CONST.MIN_MAP_X
-        else if (this.userPos[0] > CONST.MAX_MAP_X)
-            this.userPos[0] = CONST.MAX_MAP_X
-        if (this.userPos[2] < CONST.MIN_MAP_Z)
-            this.userPos[2] = CONST.MIN_MAP_Z
-        else if (this.userPos[2] > CONST.MAX_MAP_Z)
-            this.userPos[2] = CONST.MAX_MAP_Z
+        // if (this.userPos[0] < CONST.MIN_MAP_X)
+        //     this.userPos[0] = CONST.MIN_MAP_X
+        // else if (this.userPos[0] > CONST.MAX_MAP_X)
+        //     this.userPos[0] = CONST.MAX_MAP_X
+        // if (this.userPos[2] < CONST.MIN_MAP_Z)
+        //     this.userPos[2] = CONST.MIN_MAP_Z
+        // else if (this.userPos[2] > CONST.MAX_MAP_Z)
+        //     this.userPos[2] = CONST.MAX_MAP_Z
 
         if (this.userPos[1] <= this.activeGround && (this.userVel[1] <= 0 || Math.abs(this.userVel[1] < 0.1)) ) {
             this.userVel[1] = Math.min(0.3 * (this.activeGround - this.userPos[1]), 0.1)

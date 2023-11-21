@@ -13,6 +13,7 @@
 <!-- The following code embeds a WebGL canvas panel, loads certain scene(s), and displays panel(s) of their controls.-->
 <div class="canvas-widget" id="main-canvas"></div>
 <div class="scope"></div>
+<div id="chargebar"></div>
 <script type=module>
     // ********************* THE ENTRY POINT OF YOUR WHOLE PROGRAM STARTS HERE *********************
     // Indicate which element on the page you want the Canvas_Widget to replace with a 3D WebGL area:
@@ -46,6 +47,19 @@ canvas {
     line-height: 6px;
     transform: translate(-50%, -50%);
     z-index:20;
+}
+#chargebar {
+    position: absolute;
+    opacity: 0;
+    left: 50%;
+    top: 50%;
+    border-radius: 4px;
+    width: 40px;
+    height: 3px;
+    background: red;
+    line-height: 6px;
+    transform: translate(-50%, -50%) translateY(20px);
+    z-index:20; 
 }
 </style>
 

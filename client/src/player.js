@@ -28,15 +28,15 @@ export class Player {
     canFire() {
         let currentTime = Date.now();
         let timeSinceLastFire = (currentTime - this.#lastFiredTime) / 1000.0;
-        console.log ("Last fired at " + this.#lastFiredTime + ", current time is " + currentTime);
+        // console.log ("Last fired at " + this.#lastFiredTime + ", current time is " + currentTime);
 
         if(this.#lastFiredTime === -1 || timeSinceLastFire >= (1 / this.#fireRate)) {
-            console.log("Allowed to fire --- " + currentTime);
+            // console.log("Allowed to fire --- " + currentTime);
             this.#lastFiredTime = currentTime;
             return true;
         }
 
-        console.log("Not allowed to fire yet");
+        // console.log("Not allowed to fire yet");
         return false;
 
     }

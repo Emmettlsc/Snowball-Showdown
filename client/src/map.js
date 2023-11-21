@@ -27,3 +27,13 @@ export const mapComponents = [
     { translate: [50,  -1.5 + 0.5 * i, 50 - 2*i],   rotation: [1, 0, 0], roationAngle: 0.578 * Math.PI, scale: [3, 1.5, 0.1] }
   ))
 ]
+
+export const genRandomStartingPos = () => {
+  const positions = [
+    [-48, 0, -48],
+    [48, 0, -48],
+    [48, 0, 48],
+    [-48, 0, 48],
+  ]
+  return positions[Math.floor(Math.random() * positions.length)]
+}
