@@ -43,9 +43,7 @@ export class Simulation extends Scene {
                     b.material.localTime += this.dt;
                 }
             }
-            // for(let s of this.snowflakes) {
-            //     s.advance(this.dt);
-            // }
+
             for(let s of this.snowflakes) {
                 s.material.localTime += this.dt;
             }
@@ -354,7 +352,6 @@ export class Main_Demo extends Simulation {
             let snowflakeLocation = Mat4.identity();
             snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
 
-            // Make snowflakes mini donuts for better visibility while debugging
             this.snowflakes.push(
                 new Body(
                     this.data.shapes.snowflake,
