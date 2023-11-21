@@ -79,6 +79,8 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
     }
   }
 
+  if (posArray[1] < CONST.MIN_Y - 0.5)
+    activeGround = -1000;
   if (activeGround === CONST.MIN_Y && (posArray[0] > CONST.MAX_MAP_X || posArray[0] < CONST.MIN_MAP_X || posArray[2] > CONST.MAX_MAP_Z || posArray[2] < CONST.MIN_MAP_Z))
     activeGround = -1000;
   

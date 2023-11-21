@@ -532,15 +532,6 @@ export class Main_Demo extends Simulation {
             this.userVel = [0, 0, 0]
             console.log('handle death here')
         }
-        // check if user is out of bounds
-        // if (this.userPos[0] < CONST.MIN_MAP_X)
-        //     this.userPos[0] = CONST.MIN_MAP_X
-        // else if (this.userPos[0] > CONST.MAX_MAP_X)
-        //     this.userPos[0] = CONST.MAX_MAP_X
-        // if (this.userPos[2] < CONST.MIN_MAP_Z)
-        //     this.userPos[2] = CONST.MIN_MAP_Z
-        // else if (this.userPos[2] > CONST.MAX_MAP_Z)
-        //     this.userPos[2] = CONST.MAX_MAP_Z
 
         if (this.userPos[1] <= this.activeGround && (this.userVel[1] <= 0 || Math.abs(this.userVel[1] < 0.1)) ) {
             this.userVel[1] = Math.min(0.3 * (this.activeGround - this.userPos[1]), 0.1)
