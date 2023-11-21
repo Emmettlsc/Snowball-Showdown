@@ -10,8 +10,10 @@ export const USER_SHOOT_DELAY = 5 //ms
 
 export const USER_ROTATION_SPEED_X = 0.003
 export const USER_ROTATION_SPEED_Y = 0.003
-export const USER_FWD_MOVE_SPEED = 0.5
-export const USER_SIDE_MOVE_SPEED = 0.3
-export const USER_BACK_MOVE_SPEED = 0.3
+export const USER_FWD_MOVE_SPEED = 0.3
+export const USER_SIDE_MOVE_SPEED = 0.15
+export const USER_BACK_MOVE_SPEED = 0.15
 
 export const SNOWBALL_CHARGE_FACTOR = 50
+
+export const WEBSOCKET_SEND_MIN_DELAY = 20 //ms

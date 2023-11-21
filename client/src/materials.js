@@ -45,10 +45,11 @@ export class Test_Data {
                 localTime: 0.0,
             }),
 
-            snowballTexturedMtl: new Material(new defs.Textured_Phong(), { ambient: 0.7, texture: new Texture("assets/snow.jpg"), color: color(0.5, 0.5, 1, 1)  }),
+            snowballTexturedMtl: new Material(new defs.Textured_Phong(), { ambient: 0.7, texture: new Texture("assets/snow.jpg"), color: color(0.5, 0.5, 1, 1) }),
             snowgroundMtl:       new Material(new defs.Textured_Phong(), { ambient: 1.0, texture: new Texture("assets/snow.jpg")   }),
             wallMtl:             new Material(new defs.Textured_Phong(), { ambient: 0.3, texture: new Texture("assets/snow.jpg")   }),
-            fullGround:          new Material(new defs.Textured_Phong(), { ambient: 0.6, texture: new Texture("assets/snow.jpg"), color: color(0.6, 0.6, 1, 1)   }),
+            playerMtl:           new Material(new defs.Textured_Phong(), { ambient: 0.5, texture: new Texture("assets/snow.jpg"), color: color(1, 0.5, 0.5, 1) }),
+            fullGround:          new Material(new defs.Textured_Phong(), { ambient: 0.6, texture: new Texture("assets/snow.jpg"), color: color(0.6, 0.6, 1, 1) }),
             backgroundOne:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a1_c2.png")   }),
             backgroundTwo:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a2.png")   }),
 

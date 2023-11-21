@@ -82,18 +82,13 @@ export class Simulation extends Scene {
     }
 
     display(context, program_state) {
-        // display(): advance the time and state of our whole simulation.
         if (program_state.animate)
             this.simulate(program_state.animation_delta_time);
-        // Draw each shape at its current location:
         for (let b of this.bodies) {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
-            // console.log("Body has material: " + b.material.constructor.name)
-            // console.log(b.constructor.name)
         }
 
         for(let s of this.snowflakes) {
-            // console.log ("Drawing snowflake");
             s.shape.draw(context, program_state, s.drawn_location, s.material);
         }
 
@@ -158,16 +153,13 @@ export class Main_Demo extends Simulation {
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
 
-
         // Initialize snowflakes to create snowfall effect
         this.snowflakes = [];
-
-
-
     }
 
     initWebSocket() {
-        this.socket = new WebSocket('ws://184.72.14.50/ws');
+        this.socketTimeLastSent = 0
+        this.socket = new WebSocket('wss://snow.bazzled.com/ws') //new WebSocket('ws://184.72.14.50/ws');
 
         this.socket.onopen = () => {
             console.log('WebSocket connection established');
@@ -194,7 +186,13 @@ export class Main_Demo extends Simulation {
 
 
     handleWebSocketMessage(event) {
-        const data = JSON.parse(event.data);
+        let data;
+        try {
+            data = JSON.parse(event.data);
+        } catch  (e) {
+            console.log(e)
+            return
+        }
 
         if (data.type === 'move') {
             // Handle move event
@@ -206,7 +204,6 @@ export class Main_Demo extends Simulation {
         } else if (data.type === 'playerDisconnected') {
             this.players.delete(data.playerId)
         } else if (data.type === 'snowball-throw') {
-            console.log(data)
             const userDirection = [data.usr_dir1, data.usr_dir2, data.usr_dir3]
 
             this.requestThrowSnowball = false
@@ -375,9 +372,6 @@ export class Main_Demo extends Simulation {
 
             this.player.indicateFired();
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
-            
-            console.log("TEST")
-            console.log(this.camera_transform)
             this.sendPlayerAction({ 
                 id: this.id, 
                 type: 'snowball-throw', 
@@ -393,7 +387,6 @@ export class Main_Demo extends Simulation {
                 chargeAmount: chargeAmount, 
                 matrix: this.camera_transform,
             })
-            console.log("TEST2")
 
         }
          else if(this.requestThrowSnowball && !this.player.canFire()) {
@@ -551,11 +544,10 @@ export class Main_Demo extends Simulation {
         this.players.forEach((player) => {
             this.shapes.cube.draw(
                 context, program_state,
-                Mat4.translation(player.x, player.y, player.z)
-                .times(Mat4.scale(1, 2, 1)),
-                this.materials.wallMtl
-                );
-        });
+                Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 2, 1)),
+                this.materials.playerMtl
+            );
+        })
 
         this.cameraRotation[0] +=CONST.USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
         if (this.cameraRotation[1] >= -1.5 && this.cameraRotation[1] + CONST.USER_ROTATION_SPEED_Y * this.mouseMovementAmt[1] > -1.5 
@@ -599,7 +591,10 @@ export class Main_Demo extends Simulation {
         else 
             this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
         this.userPos[1] += this.userVel[1]
-        this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2] });
+        if (Date.now() > this.socketTimeLastSent + 50) {
+            this.socketTimeLastSent = Date.now()
+            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2] });
+        }
         // this.userMovementAmt = [0, 0]
 
         if (this.userPos[1] > activeCeiling - 0.1){
