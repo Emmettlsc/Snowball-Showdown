@@ -232,11 +232,12 @@ export class Main_Demo extends Simulation {
         }
         if (this.players.has(id)) {
             const player = this.players.get(id);
-            player.x = position.x;
-            player.y = position.y;
-            player.z = position.z;
+            player.serverPos = position
+            // player.x = position.x;
+            // player.y = position.y;
+            // player.z = position.z;
         } else if (id) {
-            const player = new Player(id, position.x, position.y, position.z);
+            const player = { x: position.x, y: position.y, z: position.z, serverPos: position }//new Player(id, position.x, position.y, position.z);
             this.players.set(id, player);
         }
 
@@ -542,11 +543,15 @@ export class Main_Demo extends Simulation {
         this.checkAllDownKeys()
         //draw all the players
         this.players.forEach((player) => {
+            for (const dir of ['x', 'y', 'z']) {
+                player[dir] += 0.2 * (player.serverPos[dir] - player[dir])
+            }
+            console.log(player)
             this.shapes.cube.draw(
                 context, program_state,
                 Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 2, 1)),
                 this.materials.playerMtl
-            );
+            )
         })
 
         this.cameraRotation[0] +=CONST.USER_ROTATION_SPEED_X * this.mouseMovementAmt[0]
