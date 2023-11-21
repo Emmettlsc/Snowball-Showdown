@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/emmettlsc/Snowball-Showdown/internal/game"
 	"github.com/google/uuid"
 )
@@ -59,13 +58,31 @@ func (h *Hub) Run() {
 				Type: "assignID",
 				ID:   clientID,
 			})
+			//fmt.Println(string(idMessage[:]))
 			client.send <- idMessage
 
 		case client := <-h.unregister:
-			//removes client un page reload
-			fmt.Println(client)
 			if _, ok := h.clients[client]; ok {
+				//notify other clients about the disconnection
+				disconnectMessage, _ := json.Marshal(struct {
+					Type     string `json:"type"`
+					PlayerID string `json:"playerId"`
+				}{
+					Type:     "playerDisconnected",
+					PlayerID: client.ID,
+				})
+				//fmt.Println(string(disconnectMessage[:]))
+
+				//broadcast the disconnect message to other clients
+				for otherClient := range h.clients {
+					if otherClient != client {
+						otherClient.send <- disconnectMessage
+					}
+				}
+
+				//clean up the disconnected client
 				delete(h.clients, client)
+				h.gameState.RemovePlayer(client.ID)
 				close(client.send)
 			}
 

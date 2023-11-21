@@ -203,6 +203,8 @@ export class Main_Demo extends Simulation {
             this.addOrUpdatePlayerMarker(id, position);
         } else if (data.type === 'assignID') {
             this.id = data.id;
+        } else if (data.type === 'playerDisconnected') {
+            this.players.delete(data.playerId)
         }
     }
 
@@ -215,7 +217,7 @@ export class Main_Demo extends Simulation {
             player.x = position.x;
             player.y = position.y;
             player.z = position.z;
-        } else {
+        } else if (id) {
             const player = new Player(id, position.x, position.y, position.z);
             this.players.set(id, player);
         }
@@ -299,7 +301,7 @@ export class Main_Demo extends Simulation {
 
         if (this.downKeys['mouse']) {
             if(this.charging) {
-                console.log('charging snowball: ', this.chargeTime)
+                // console.log('charging snowball: ', this.chargeTime)
                 this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
                     document.getElementById('chargebar').style.opacity = this.chargeTime < 1 ? 0.1 : (this.chargeTime - 1)
             }
@@ -311,6 +313,26 @@ export class Main_Demo extends Simulation {
 
     random_color() {
         return this.material.override(color(.6, .6 * Math.random(), .6 * Math.random(), 1));
+    }
+
+    // checkPlayerCollisions(x, y, z) {
+    //     for (const player of this.players) {
+    //         console.log(player.x)
+    //         console.log(Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2 + (player.z - z) ** 2))
+    //         if (Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2 + (player.z - z) ** 2) < 20.0) {
+    //             return true;
+    //         }
+    //     }
+    // }
+    checkPlayerCollisions(x, y, z) {
+        let ret = false
+        this.players.forEach((player) => {
+            console.log(Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ))
+            if (Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ) < 2) {
+                ret = true
+            }
+        });
+        return ret
     }
 
     update_state(dt) {
@@ -352,8 +374,9 @@ export class Main_Demo extends Simulation {
              this.requestThrowSnowball = false; // Make the player press a key again to request another snowball
          }
 
-        for (let i = 0; i < this.bodies.length; i++) {
+         for (let i = 0; i < this.bodies.length; i++) {
             const b = this.bodies[i]
+
 
             if(b.constructor.name === "Snowball" && b.hasCollided()) {
                 if(b.timeSinceCollision() > 1.0){
@@ -367,6 +390,15 @@ export class Main_Demo extends Simulation {
 
             // Gravity on Earth, where 1 unit in world space = 1 meter:
             b.linear_velocity[1] += dt * -9.8;
+
+            // Player collision detection w/ snowballs here:
+            let collisionWithPlayer = this.checkPlayerCollisions(b.center[0], b.center[1], b.center[2]);
+            if(collisionWithPlayer) { 
+                console.log("HERE")
+                b.slow_snowball();
+                b.indicateCollision();
+            }
+
             // If about to fall through floor, reverse y velocity:
             let collisionResult = checkMapComponentCollisions(b.center, b.linear_velocity, true)
             if (
@@ -387,7 +419,7 @@ export class Main_Demo extends Simulation {
 
         }
 
-        console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
+        // console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
         for(let i = 0; i < this.snowflakes.length; i++) {
 
             let s = this.snowflakes[i];
