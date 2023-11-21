@@ -167,7 +167,7 @@ export class Main_Demo extends Simulation {
     }
 
     initWebSocket() {
-        this.socket = new WebSocket('ws://localhost:8080/ws');
+        this.socket = new WebSocket('ws://18.118.25.223:8080/ws');
 
         this.socket.onopen = () => {
             console.log('WebSocket connection established');
