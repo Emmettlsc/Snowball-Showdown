@@ -490,11 +490,11 @@ export class Main_Demo extends Simulation {
         this.checkAllDownKeys()
         //draw all the players
         this.players.forEach((player) => {
-            this.shapes.square.draw(
-                context, program_state, 
+            this.shapes.cube.draw(
+                context, program_state,
                 Mat4.translation(player.x, player.y, player.z)
                 .times(Mat4.scale(1, 2, 1)),
-                this.snowballMtl
+                this.materials.wallMtl
                 );
         });
 

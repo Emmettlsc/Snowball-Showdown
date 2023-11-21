@@ -19,6 +19,8 @@ func main() {
 	// Serve static files
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("../client/assets"))))
 	http.Handle("/examples/", http.StripPrefix("/examples/", http.FileServer(http.Dir("../client/examples"))))
+	http.Handle("/src/", http.StripPrefix("/src/", http.FileServer(http.Dir("../client/src"))))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Default to serving index.html
 		if r.URL.Path == "/" {
