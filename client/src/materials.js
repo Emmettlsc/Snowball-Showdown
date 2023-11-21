@@ -64,13 +64,14 @@ export class Test_Data {
             }),
 
             snowflakeMtl: new Material(new Snowflake_Shader(), {
-                ambient: 1.0,
-                color: color(0.0, 0.0, 0.0, 1),
+                ambient: 0.7,
+                color: color(1, 1, 1, 1),
+                localTime: 0.0,
             }),
 
             white: new Material(shader, {
                 color: color(0, 0, 0, 1),
-                ambient: .4,
+                ambient: .7,
             }),
 
         };

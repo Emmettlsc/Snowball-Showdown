@@ -43,9 +43,13 @@ export class Simulation extends Scene {
                     b.material.localTime += this.dt;
                 }
             }
+            // for(let s of this.snowflakes) {
+            //     s.advance(this.dt);
+            // }
             for(let s of this.snowflakes) {
-                s.advance(this.dt);
+                s.material.localTime += this.dt;
             }
+
             // Following the advice of the article, de-couple
             // our simulation time from our frame rate:
             this.t += Math.sign(frame_time) * this.dt;
@@ -317,17 +321,20 @@ export class Main_Demo extends Simulation {
 
         }
 
-        console.log("There are " + this.snowflakes.length + " in the scene");
+        console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
         for(let i = 0; i < this.snowflakes.length; i++) {
 
             let s = this.snowflakes[i];
-            if(s.center[1] <= 0) {  // Remove snowflakes that have fallen through the floor
+            // Remove snowflakes that have been alive for a while.
+            // Ideally would delete them after they fall through the floor, but since the movement is done in the shader, there's no way to get that value easily from here
+            if(s.material.localTime >= 5.0) {
                 this.snowflakes.splice(i, 1);
                 console.log("Deleting snowflake");
                 i--;
             }
             else{
-                s.linear_velocity[1] += dt * -9.8; //Gravity
+                // Comment out  --- want to implement in shader not in js
+                // s.linear_velocity[1] += dt * -9.8; //Gravity
             }
 
 
@@ -351,7 +358,7 @@ export class Main_Demo extends Simulation {
             this.snowflakes.push(
                 new Body(
                     this.data.shapes.snowflake,
-                    this.materials.white,
+                    this.materials.snowflakeMtl.override({localTime: 0.0}),
                     vec3(0.3, 0.3, 0.3),
                 ).emplace(
                     snowflakeLocation,
