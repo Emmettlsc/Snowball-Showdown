@@ -1,10 +1,7 @@
 import {defs, tiny} from './examples/common.js';
 
-import {Transforms_Sandbox} from "./examples/transforms-sandbox.js"
 // import { Assignment2 } from "./assignment2.js"
 // import { Assignment3 } from "./assignment3.js"
-import { Obj_File_Demo } from './examples/obj-file-demo.js'
-import { Collision_Demo } from './examples/collisions-demo.js';
 import { Main_Demo } from './src/index.js';
 // Pull these names into this module's scope for convenience:
 const {
@@ -20,8 +17,7 @@ const {
 //                      (On the web, a backend should instead just pack all these as well
 //                      as common.js into one file for you, such as "dependencies.js")
 
-const Minimal_Webgl_Demo = defs.Minimal_Webgl_Demo;
-Object.assign(defs, {Transforms_Sandbox});
+// Object.assign(defs, {Transforms_Sandbox});
 
 // ******************** End extra step
 

@@ -14,20 +14,16 @@ export const mapComponents = [
   { translate: [-0, 0, -40],   rotation: [0, 0, 1], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
 
   //parallel walls
-  { translate: [-47, 0, 35],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [-37, 0, 35],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [0, 0, 40],    rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [37, 0, 40],   rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [-30, 0, 15],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [0, 0, 15],    rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [20, 0, 0],    rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [-47, 0, 0],   rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [-10, 0, -20], rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [30, 0, -20],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [-47, 0, -35], rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
-  { translate: [-0, 0, -40],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] },
+  {"translate":[-30,0,-13],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
+  {"translate":[24,0,19],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
+  {"translate":[28,0,-45],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
+  {"translate":[-30,0,-47],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
+  {"translate":[-25,0,-41],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
+  {"translate":[3,0,-9],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
+  {"translate":[9,0,46],"rotation":[0,1,0],"roationAngle":Math.PI / 2,"scale":[3,2,0.1]},
 
   //floors
+  { translate: [-47, 10, 47],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [3, 3, 0.1] },
   { translate: [47,  0,   0],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
   { translate: [47,  1, -10],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
   { translate: [47,  2, -20],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
@@ -57,9 +53,10 @@ export const mapComponents = [
 export const genRandomStartingPos = () => {
   const positions = [
     [-48, 0,  48],
-    // [-48, 0, -48],
-    // [48 , 0, -48],
-    // [48 , 0,  48],
+    [-48, 12,  48],
+    [-48, 0, -48],
+    [48 , 0, -48],
+    [48 , 0,  48],
   ]
   return positions[Math.floor(Math.random() * positions.length)]
 }

@@ -8,12 +8,12 @@ export class Test_Data {
     // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
     constructor() {
         this.textures = {
-            rgb: new Texture("assets/rgb.jpg"),
-            earth: new Texture("assets/earth.gif"),
-            snowground: new Texture("assets/snowground.png"),
-            grid: new Texture("assets/stars.png"),
-            stars: new Texture("assets/stars.png"),
-            text: new Texture("assets/text.png"),
+            // rgb: new Texture("assets/rgb.jpg"),
+            // earth: new Texture("assets/earth.gif"),
+            // snowground: new Texture("assets/snowground.png"),
+            // grid: new Texture("assets/stars.png"),
+            // stars: new Texture("assets/stars.png"),
+            // text: new Texture("assets/text.png"),
         }
         this.shapes = {
             donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
@@ -45,7 +45,7 @@ export class Test_Data {
                 localTime: 0.0,
             }),
 
-            snowballTexturedMtl: new Material(new defs.Textured_Phong(), { ambient: 1.0, texture: new Texture("assets/snow.jpg")   }),
+            snowballTexturedMtl: new Material(new defs.Textured_Phong(), { ambient: 0.7, texture: new Texture("assets/snow.jpg"), color: color(0.5, 0.5, 1, 1)  }),
             snowgroundMtl:       new Material(new defs.Textured_Phong(), { ambient: 1.0, texture: new Texture("assets/snow.jpg")   }),
             wallMtl:             new Material(new defs.Textured_Phong(), { ambient: 0.3, texture: new Texture("assets/snow.jpg")   }),
             fullGround:          new Material(new defs.Textured_Phong(), { ambient: 0.6, texture: new Texture("assets/snow.jpg"), color: color(0.6, 0.6, 1, 1)   }),

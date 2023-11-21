@@ -153,7 +153,7 @@ export class Main_Demo extends Simulation {
         let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
-        this.player = new Player(this.playerId, defaultMoveSpeed, 10, defaultFireSpeed);
+        this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed);
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
@@ -220,20 +220,6 @@ export class Main_Demo extends Simulation {
             this.players.set(id, player);
         }
 
-        // // Assuming `position` is an object with x, y, z coordinates
-        // // Replace the following code with whatever logic you use to add objects to your game
-        // const s = 40; // speed or size factor for the snowball
-        // this.bodies.push(
-        //     new Body(
-        //         this.data.shapes.ball,
-        //         this.snowballMtl,
-        //         vec3(0.7, 0.7, 0.7) // size of the marker
-        //     ).emplace(
-        //         Mat4.translation(position.x, position.y, position.z),
-        //         vec3(0, 0, 0), // initial velocity (static in this case)
-        //         0 // initial angle
-        //     )
-        // );
     }
 
     handleKeydown(e) {
@@ -299,13 +285,10 @@ export class Main_Demo extends Simulation {
 
         if (this.downKeys['mouse']) {
             if(this.charging) {
-                console.log('charging snowball: ', this.chargeTime)
+                // console.log('charging snowball: ', this.chargeTime)
                 this.chargeTime += this.dt; //use this.dt (simulation time) or real time?
                     document.getElementById('chargebar').style.opacity = this.chargeTime < 1 ? 0.1 : (this.chargeTime - 1)
             }
-            // this.requestThrowSnowball = true
-            // this.userCanShoot = false
-            // setTimeout(() => this.userCanShoot = true, CONST.USER_SHOOT_DELAY)
         }
     }
 
@@ -315,6 +298,13 @@ export class Main_Demo extends Simulation {
 
     update_state(dt) {
         if (this.requestThrowSnowball && this.player.canFire()) {
+            if (false) { //for map creation only
+                const newWall = { translate: [Math.round(this.userPos[0]), 0, Math.round(this.userPos[2])],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [3, 2, 0.1] }
+                mapComponents.push(newWall)
+                if (!window.items)
+                    window.items = []
+                window.items.push(newWall)
+            }
 
             const userDirection = [-this.camera_transform[0][2], -this.camera_transform[1][2], -this.camera_transform[2][2]]
             this.requestThrowSnowball = false
@@ -387,7 +377,7 @@ export class Main_Demo extends Simulation {
 
         }
 
-        console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
+        // console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
         for(let i = 0; i < this.snowflakes.length; i++) {
 
             let s = this.snowflakes[i];
