@@ -3,6 +3,7 @@ import {Body} from './body.js'
 import {Snowball} from './snowball.js'
 import {Player} from "./player.js";
 import {Particle_Shader} from "./particleshader.js";
+import { Shape_From_File } from './shapefromfile.js';
 import { mapComponents, genRandomStartingPos } from './map.js';
 import { checkMapComponentCollisions } from './collisions.js';
 import * as CONST from './constants.js'
@@ -115,6 +116,9 @@ export class Main_Demo extends Simulation {
         this.shapes = Object.assign({}, this.data.shapes);
         this.shapes.square = new defs.Square();
         this.shapes.cube = new defs.Cube();
+        // this.shapes.snowman = new Shape_From_File("assets/snowman.obj");
+        this.shapes.snowman = new Shape_From_File("assets/snow.obj");
+        this.shapes.teapot = new Shape_From_File("assets/teapot.obj");
         const shader = new defs.Fake_Bump_Map(1);
 
         this.materials = Object.assign({}, this.data.materials);
@@ -556,9 +560,14 @@ export class Main_Demo extends Simulation {
             for (const dir of ['x', 'y', 'z']) {
                 player[dir] += 0.3 * (player.serverPos[dir] - player[dir])
             }
-            this.shapes.cube.draw(
+            // this.shapes.cube.draw(
+            //     context, program_state,
+            //     Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 2, 1)),
+            //     this.materials.playerMtl
+            // )
+            this.shapes.snowman.draw(
                 context, program_state,
-                Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 2, 1)),
+                Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(45, 0, 1, 0)),
                 this.materials.playerMtl
             )
         })
