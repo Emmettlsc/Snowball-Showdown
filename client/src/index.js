@@ -202,8 +202,8 @@ export class Main_Demo extends Simulation {
         if (data.type === 'move') {
             // Handle move event
             const id = data.id
-            const position = { x: data.x, y: data.y, z: data.z };
-            this.addOrUpdatePlayerMarker(id, position);
+            const position = { x: data.x, y: data.y, z: data.z, };
+            this.addOrUpdatePlayerMarker(id, position, data.rotation);
         } else if (data.type === 'assignID') {
             this.id = data.id;
         } else if (data.type === 'playerDisconnected') {
@@ -241,18 +241,19 @@ export class Main_Demo extends Simulation {
         }
     }
 
-    addOrUpdatePlayerMarker(id, position) {
+    addOrUpdatePlayerMarker(id, position, rotation) {
         if (id === this.id) {
             return;
         }
         if (this.players.has(id)) {
             const player = this.players.get(id);
             player.serverPos = position
+            player.rotation = rotation
             // player.x = position.x;
             // player.y = position.y;
             // player.z = position.z;
         } else if (id) {
-            const player = { x: position.x, y: position.y, z: position.z, serverPos: position }//new Player(id, position.x, position.y, position.z);
+            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation}//new Player(id, position.x, position.y, position.z);
             this.players.set(id, player);
         }
 
@@ -567,7 +568,7 @@ export class Main_Demo extends Simulation {
             // )
             this.shapes.snowman.draw(
                 context, program_state,
-                Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(45, 0, 1, 0)),
+                Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(-player.rotation + 160, 0, 1, 0)),
                 this.materials.playerMtl
             )
         })
@@ -616,7 +617,7 @@ export class Main_Demo extends Simulation {
         this.userPos[1] += this.userVel[1]
         if (Date.now() > this.socketTimeLastSent + 50) {
             this.socketTimeLastSent = Date.now()
-            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2] });
+            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0] });
         }
         // this.userMovementAmt = [0, 0]
 
