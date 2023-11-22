@@ -16,4 +16,4 @@ export const USER_BACK_MOVE_SPEED = 0.15
 
 export const SNOWBALL_CHARGE_FACTOR = 50
 
-export const WEBSOCKET_SEND_MIN_DELAY = 20 //ms
+export const WEBSOCKET_SEND_MIN_DELAY = 30 //ms

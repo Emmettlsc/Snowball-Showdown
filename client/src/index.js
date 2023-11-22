@@ -190,6 +190,7 @@ export class Main_Demo extends Simulation {
         try {
             data = JSON.parse(event.data);
         } catch  (e) {
+            console.log(event.data)
             console.log(e)
             return
         }
@@ -223,6 +224,16 @@ export class Main_Demo extends Simulation {
                 )
             )
             console.log(this.bodies)
+        } else if (data.type === 'player-kill') {
+            console.log(data)
+            console.log(this.id)
+            if (data.playerKilled !== this.id) // || this.userIsDead)
+                return
+            console.log('user died')
+            this.userIsDead = true
+            this.userPos = genRandomStartingPos()
+            this.cameraRotation = [this.userPos[2] < 0 ? Math.PI : 0, 0]
+            this.userVel = [0, 0, 0]
         }
     }
 
@@ -326,14 +337,16 @@ export class Main_Demo extends Simulation {
     //         }
     //     }
     // }
+
+    // returns id of player collision or null if none
     checkPlayerCollisions(x, y, z) {
-        let ret = false
-        this.players.forEach((player) => {
-            if (Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ) < 2) {
-                ret = true
-            }
-        });
-        return ret
+        let pid = null
+        for (const k of this.players.keys()) {
+            const player = this.players.get(k)
+            if (Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ) < 2)
+                pid = k
+        }
+        return pid
     }
 
     update_state(dt) {
@@ -418,6 +431,11 @@ export class Main_Demo extends Simulation {
                 console.log("HERE")
                 b.slow_snowball();
                 b.indicateCollision();
+                this.sendPlayerAction({ 
+                    id: this.id, 
+                    type: 'player-kill', 
+                    playerKilled: collisionWithPlayer
+                })
             }
 
             // If about to fall through floor, reverse y velocity:
@@ -458,15 +476,7 @@ export class Main_Demo extends Simulation {
 
 
         }
-
-        // this.bodies[0].material = targetCollide ? this.active_color : this.inactive_color
-        // Delete bodies that stop or stray too far away:
-        // this.bodies = this.bodies.filter(b => b.center.norm() < 70 && b.linear_velocity.norm() > 0.2);
-        // this.bodies = this.bodies.filter(b => b.expireTime === null || b.expireTime > 0)
-        
-        // TODO: add check for snowballs that are far from map center and remove them to improve efficiency
-
-
+        this.bodies = this.bodies.filter(b => b.center.norm() < 200)
         // Add snowflakes each frame
         for(let i = 0; i < 3; i++) {
             //TODO: only spawn snowflakes within the user's field of view
@@ -544,9 +554,8 @@ export class Main_Demo extends Simulation {
         //draw all the players
         this.players.forEach((player) => {
             for (const dir of ['x', 'y', 'z']) {
-                player[dir] += 0.2 * (player.serverPos[dir] - player[dir])
+                player[dir] += 0.3 * (player.serverPos[dir] - player[dir])
             }
-            console.log(player)
             this.shapes.cube.draw(
                 context, program_state,
                 Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 2, 1)),
