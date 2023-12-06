@@ -771,14 +771,14 @@ export class Main_Demo extends Simulation {
 
 
         // Draw the ground
-        this.shapes.square.draw(
+        this.shapes.cube.draw(
             context, program_state,
             Mat4.translation(0, -2, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
                 .times(Mat4.scale(50, 50, 1)),
             shadow_pass ? this.floor : this.pure
         )
-        this.shapes.square.draw(
+        this.shapes.cube.draw(
             context, program_state,
             Mat4.translation(0, -20, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
