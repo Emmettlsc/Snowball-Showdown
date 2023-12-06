@@ -28,6 +28,8 @@ export class Test_Data {
             snowball_flatshaded: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(3),
 
             snowflake: new defs.Triangle,
+
+            sphere: new defs.Subdivision_Sphere(6),
         };
 
         const shader = new defs.Fake_Bump_Map(1);
