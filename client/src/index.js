@@ -544,8 +544,14 @@ export class Main_Demo extends Simulation {
 
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
-            program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix).
+            // program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix). // UNCOMMENT THIS AFTER TESTING SHADOWS
             // this.children.push(new defs.Program_State_Viewer());
+
+            program_state.set_camera(Mat4.look_at( // ONLY FOR TESTING SHADOWS
+                vec3(0, 12, 12),
+                vec3(0, 2, 0),
+                vec3(0, 1, 0)
+            )); // Locate the camera here
         }
         program_state.projection_transform = Mat4.perspective(
             this.userZoom ? Math.PI / 8 : 0.33 * Math.PI, 
@@ -567,7 +573,7 @@ export class Main_Demo extends Simulation {
 
 
         // The position of the light
-        this.light_position = Mat4.rotation(0, 0, 1, 0).times(vec4(3, 3, 0, 1));
+        this.light_position = Mat4.rotation(0, 0, 1, 0).times(vec4(3, 10, 0, 1));
         // The color of the light
         this.light_color = color(
             1,
@@ -579,9 +585,11 @@ export class Main_Demo extends Simulation {
         // This is a rough target of the light.
         // Although the light is point light, we need a target to set the POV of the light
         this.light_view_target = vec4(0, 0, 0, 1);
-        this.light_field_of_view = 130 * Math.PI / 180; // 130 degree
+        // this.light_field_of_view = 130 * Math.PI / 180; // 130 degree
+        this.light_field_of_view = 2 * Math.PI ; // 360 degrees
 
-        program_state.lights = [new Light(this.light_position, this.light_color, 1000)];
+
+        program_state.lights = [new Light(this.light_position, this.light_color, 100000)];
 
         // Render shadows
 
@@ -615,38 +623,38 @@ export class Main_Demo extends Simulation {
 
 
 
-        // Draw the ground
-        this.shapes.square.draw(
-            context, program_state, 
-            Mat4.translation(0, -2, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(50, 50, 1)),
-            this.materials.snowgroundMtl
-        )
-        this.shapes.square.draw(
-            context, program_state, 
-            Mat4.translation(0, -20, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 1)),
-            this.materials.fullGround
-        )
-        this.shapes.ball.draw(
-            context, program_state,
-            Mat4.translation(0, 0, 0)
-                .times(Mat4.rotation(0, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 200)),
-            this.materials.backgroundOne
-        )
-
-        for (const piece of mapComponents) {
-            this.shapes.cube.draw(
-                context, program_state,
-                Mat4.translation(...piece.translate)
-                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
-                    .times(Mat4.scale(...piece.scale)),
-                this.materials.wallMtl
-            )
-        }
+        // // Draw the ground
+        // this.shapes.square.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, -2, 0)
+        //         .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+        //         .times(Mat4.scale(50, 50, 1)),
+        //     this.materials.snowgroundMtl
+        // )
+        // this.shapes.square.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, -20, 0)
+        //         .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 1)),
+        //     this.materials.fullGround
+        // )
+        // this.shapes.ball.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, 0, 0)
+        //         .times(Mat4.rotation(0, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 200)),
+        //     this.materials.backgroundOne
+        // )
+        //
+        // for (const piece of mapComponents) {
+        //     this.shapes.cube.draw(
+        //         context, program_state,
+        //         Mat4.translation(...piece.translate)
+        //             .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+        //             .times(Mat4.scale(...piece.scale)),
+        //         this.materials.wallMtl
+        //     )
+        // }
 
         this.checkAllDownKeys()
         //draw all the players
@@ -762,25 +770,59 @@ export class Main_Demo extends Simulation {
         // }
 
 
-        // Draw objects here
-        let model_trans_floor = Mat4.scale(8, 0.1, 5);
-        let model_trans_ball_0 = Mat4.translation(0, 1, 0);
-        let model_trans_ball_1 = Mat4.translation(5, 1, 0);
-        let model_trans_ball_2 = Mat4.translation(-5, 1, 0);
-        let model_trans_ball_3 = Mat4.translation(0, 1, 3);
-        let model_trans_ball_4 = Mat4.translation(0, 1, -3);
-        let model_trans_wall_1 = Mat4.translation(-8, 2 - 0.1, 0).times(Mat4.scale(0.33, 2, 5));
-        let model_trans_wall_2 = Mat4.translation(+8, 2 - 0.1, 0).times(Mat4.scale(0.33, 2, 5));
-        let model_trans_wall_3 = Mat4.translation(0, 2 - 0.1, -5).times(Mat4.scale(8, 2, 0.33));
-        this.shapes.cube.draw(context, program_state, model_trans_floor, shadow_pass? this.floor : this.pure);
-        this.shapes.cube.draw(context, program_state, model_trans_wall_1, shadow_pass? this.floor : this.pure);
-        this.shapes.cube.draw(context, program_state, model_trans_wall_2, shadow_pass? this.floor : this.pure);
-        this.shapes.cube.draw(context, program_state, model_trans_wall_3, shadow_pass? this.floor : this.pure);
-        this.shapes.sphere.draw(context, program_state, model_trans_ball_0, shadow_pass? this.floor : this.pure);
-        this.shapes.sphere.draw(context, program_state, model_trans_ball_1, shadow_pass? this.floor : this.pure);
-        this.shapes.sphere.draw(context, program_state, model_trans_ball_2, shadow_pass? this.floor : this.pure);
-        this.shapes.sphere.draw(context, program_state, model_trans_ball_3, shadow_pass? this.floor : this.pure);
-        this.shapes.sphere.draw(context, program_state, model_trans_ball_4, shadow_pass? this.floor : this.pure);
+        // Draw the ground
+        this.shapes.square.draw(
+            context, program_state,
+            Mat4.translation(0, -2, 0)
+                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                .times(Mat4.scale(50, 50, 1)),
+            shadow_pass ? this.floor : this.pure
+        )
+        this.shapes.square.draw(
+            context, program_state,
+            Mat4.translation(0, -20, 0)
+                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                .times(Mat4.scale(200, 200, 1)),
+            shadow_pass ? this.floor : this.pure
+        )
+        this.shapes.ball.draw(
+            context, program_state,
+            Mat4.translation(0, 0, 0)
+                .times(Mat4.rotation(0, 1, 0, 0))
+                .times(Mat4.scale(200, 200, 200)),
+            shadow_pass ? this.floor : this.pure
+        )
+
+        for (const piece of mapComponents) {
+            this.shapes.cube.draw(
+                context, program_state,
+                Mat4.translation(...piece.translate)
+                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+                    .times(Mat4.scale(...piece.scale)),
+                shadow_pass ? this.floor : this.pure
+            )
+        }
+
+
+        // Draw objects from demo
+        // let model_trans_floor = Mat4.scale(8, 0.1, 5);
+        // let model_trans_ball_0 = Mat4.translation(0, 1, 0);
+        // let model_trans_ball_1 = Mat4.translation(5, 1, 0);
+        // let model_trans_ball_2 = Mat4.translation(-5, 1, 0);
+        // let model_trans_ball_3 = Mat4.translation(0, 1, 3);
+        // let model_trans_ball_4 = Mat4.translation(0, 1, -3);
+        // let model_trans_wall_1 = Mat4.translation(-8, 2 - 0.1, 0).times(Mat4.scale(0.33, 2, 5));
+        // let model_trans_wall_2 = Mat4.translation(+8, 2 - 0.1, 0).times(Mat4.scale(0.33, 2, 5));
+        // let model_trans_wall_3 = Mat4.translation(0, 2 - 0.1, -5).times(Mat4.scale(8, 2, 0.33));
+        // this.shapes.cube.draw(context, program_state, model_trans_floor, shadow_pass? this.floor : this.pure);
+        // this.shapes.cube.draw(context, program_state, model_trans_wall_1, shadow_pass? this.floor : this.pure);
+        // this.shapes.cube.draw(context, program_state, model_trans_wall_2, shadow_pass? this.floor : this.pure);
+        // this.shapes.cube.draw(context, program_state, model_trans_wall_3, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_0, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_1, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_2, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_3, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_4, shadow_pass? this.floor : this.pure);
     }
 
     texture_buffer_init(gl) {
