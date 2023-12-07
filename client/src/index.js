@@ -175,7 +175,8 @@ export class Main_Demo extends Simulation {
         // For the floor or other plain objects
         this.floor = new Material(new Shadow_Textured_Phong_Shader(1), {
             color: color(1, 1, 1, 1), ambient: .3, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
-            color_texture: null,
+            // color_texture: null,
+            color_texture: new Texture("assets/snow.jpg"),
             light_depth_texture: null
         })
         // For the first pass
