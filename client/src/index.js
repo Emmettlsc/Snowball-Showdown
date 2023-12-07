@@ -577,7 +577,7 @@ export class Main_Demo extends Simulation {
         // The color of the light
         this.light_color = color(
             1,
-            0,
+            1,
             0,
             1
         );
@@ -784,13 +784,13 @@ export class Main_Demo extends Simulation {
                 .times(Mat4.scale(50, 50, 1)),
             shadow_pass ? this.floor: this.pure
         )
-        this.shapes.cube.draw(
-            context, program_state,
-            Mat4.translation(0, -20, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 1)),
-            shadow_pass ? this.floor : this.pure
-        )
+        // this.shapes.cube.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, -20, 0)
+        //         .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 1)),
+        //     shadow_pass ? this.floor : this.pure
+        // )
         // this.shapes.ball.draw(
         //     context, program_state,
         //     Mat4.translation(0, 0, 0)
@@ -805,6 +805,7 @@ export class Main_Demo extends Simulation {
                 Mat4.translation(...piece.translate)
                     .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
                     .times(Mat4.scale(...piece.scale)),
+                // shadow_pass ? this.floor : this.pure
                 shadow_pass ? this.floor : this.pure
             )
         }
