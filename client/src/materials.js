@@ -30,6 +30,8 @@ export class Test_Data {
             snowflake: new defs.Triangle,
 
             sphere: new defs.Subdivision_Sphere(6),
+
+            square_2d: new defs.Square(),
         };
 
         const shader = new defs.Fake_Bump_Map(1);
@@ -63,6 +65,11 @@ export class Test_Data {
             }),
 
             white: new Material(shader, {
+                color: color(0, 0, 0, 1),
+                ambient: .7,
+            }),
+
+            plainMaterial: new Material(new defs.Basic_Shader(), {
                 color: color(0, 0, 0, 1),
                 ambient: .7,
             }),

@@ -45,7 +45,7 @@ export class Color_Phong_Shader extends defs.Phong_Shader {
                 void main(){
                     gl_FragColor = vec4( (shape_color.xyz ) * ambient, shape_color.w ); 
                                                                              // Compute the final color with contributions from lights:
-                    gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
+                    // gl_FragColor.xyz += phong_model_lights( normalize( N ), vertex_worldspace );
                   } `;
     }
 

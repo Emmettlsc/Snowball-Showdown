@@ -90,9 +90,9 @@ export class Simulation extends Scene {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
         }
 
-        for(let s of this.snowflakes) {
-            s.shape.draw(context, program_state, s.drawn_location, s.material);
-        }
+        // for(let s of this.snowflakes) { // Turn off snowflakes for testing shadows
+        //     s.shape.draw(context, program_state, s.drawn_location, s.material);
+        // }
 
     }
 
@@ -517,24 +517,24 @@ export class Main_Demo extends Simulation {
         }
         this.bodies = this.bodies.filter(b => b.center.norm() < 200)
         // Add snowflakes each frame
-        for(let i = 0; i < 3; i++) {
-            //TODO: only spawn snowflakes within the user's field of view
-            let snowflakeLocation = Mat4.identity();
-            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
-
-            this.snowflakes.push(
-                new Body(
-                    this.data.shapes.snowflake,
-                    this.materials.snowflakeMtl.override({localTime: 0.0}),
-                    vec3(0.3, 0.3, 0.3),
-                ).emplace(
-                    snowflakeLocation,
-                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
-                    0
-                )
-            )
-
-        }
+        // for(let i = 0; i < 3; i++) { // Turn off snowflakes while testing shadows
+        //     //TODO: only spawn snowflakes within the user's field of view
+        //     let snowflakeLocation = Mat4.identity();
+        //     snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+        //
+        //     this.snowflakes.push(
+        //         new Body(
+        //             this.data.shapes.snowflake,
+        //             this.materials.snowflakeMtl.override({localTime: 0.0}),
+        //             vec3(0.3, 0.3, 0.3),
+        //         ).emplace(
+        //             snowflakeLocation,
+        //             vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+        //             0
+        //         )
+        //     )
+        //
+        // }
 
     }
 
@@ -585,14 +585,12 @@ export class Main_Demo extends Simulation {
         // This is a rough target of the light.
         // Although the light is point light, we need a target to set the POV of the light
         this.light_view_target = vec4(0, 0, 0, 1);
-        this.light_field_of_view = 130 * Math.PI / 180; // 130 degrees arbitrarily
+        this.light_field_of_view = 160 * Math.PI / 180; // 160 degrees arbitrarily
         // this.light_field_of_view = 2 * Math.PI ; // 360 degrees
-
 
         program_state.lights = [new Light(this.light_position, this.light_color, 100000)];
 
         // Render shadows
-
         // Step 1: set the perspective and camera to the POV of light
         const light_view_mat = Mat4.look_at(
             vec3(this.light_position[0], this.light_position[1], this.light_position[2]),
@@ -601,8 +599,8 @@ export class Main_Demo extends Simulation {
         );
         const light_proj_mat = Mat4.perspective(this.light_field_of_view, 1, 0.5, 500);
         // Bind the Depth Texture Buffer
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer);
-        gl.viewport(0, 0, this.lightDepthTextureSize, this.lightDepthTextureSize);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer); // Draw to the lightDepthFramebuffer instead of the framebuffer that's shown onscreen
+        gl.viewport(0, 0, this.lightDepthTextureSize, this.lightDepthTextureSize); // Viewport is the texture instead of the user's viewport
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         // Prepare uniforms
         program_state.light_view_mat = light_view_mat;
@@ -613,11 +611,19 @@ export class Main_Demo extends Simulation {
         this.render_scene(context, program_state, false,false, false); // Do z-buffer algorithm from light's POV
 
         // Step 2: unbind, draw to the canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Don't draw to the lightDepthFrameBuffer, draw to the framebuffer that the user will see
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // Re-set the viewport to the user's viewport
         program_state.view_mat = program_state.camera_inverse;
         program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
         this.render_scene(context, program_state, true,true, true); // Do the z-buffer algorithm from the eye's POV
+
+        // Step 3: display the depth texture (shows relative depths from the light, darker = closer to light)
+        this.data.shapes.square_2d.draw(context, program_state,
+            Mat4.translation(-.99, .08, 0).times(
+                Mat4.scale(0.5, 0.5 * gl.canvas.width / gl.canvas.height, 1)
+            ),
+            this.depth_tex.override({texture: this.lightDepthTexture})
+        );
 
         // End shadows stuff
 
@@ -776,7 +782,7 @@ export class Main_Demo extends Simulation {
             Mat4.translation(0, -2, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
                 .times(Mat4.scale(50, 50, 1)),
-            shadow_pass ? this.floor : this.pure
+            shadow_pass ? this.floor: this.pure
         )
         this.shapes.cube.draw(
             context, program_state,
@@ -785,13 +791,13 @@ export class Main_Demo extends Simulation {
                 .times(Mat4.scale(200, 200, 1)),
             shadow_pass ? this.floor : this.pure
         )
-        this.shapes.ball.draw(
-            context, program_state,
-            Mat4.translation(0, 0, 0)
-                .times(Mat4.rotation(0, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 200)),
-            shadow_pass ? this.floor : this.pure
-        )
+        // this.shapes.ball.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, 0, 0)
+        //         .times(Mat4.rotation(0, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 200)),
+        //     shadow_pass ? this.floor : this.pure
+        // )
 
         for (const piece of mapComponents) {
             this.shapes.cube.draw(
