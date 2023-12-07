@@ -586,6 +586,7 @@ export class Main_Demo extends Simulation {
         // This is a rough target of the light.
         // Although the light is point light, we need a target to set the POV of the light
         this.light_view_target = vec4(0, 0, 0, 1);
+        //  TODO: the "cone" of the light is rather small, so wall obstacles on the edges of the map don't get shadows
         this.light_field_of_view = 160 * Math.PI / 180; // 160 degrees arbitrarily
         // this.light_field_of_view = 2 * Math.PI ; // 360 degrees
 
@@ -778,9 +779,10 @@ export class Main_Demo extends Simulation {
 
 
         // Draw the ground
+        //  TODO: the ground is a little too low so the wall obstacles are floating -- so shadows look a bit weird
         this.shapes.cube.draw(
             context, program_state,
-            Mat4.translation(0, -2, 0)
+            Mat4.translation(0, -1.95, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
                 .times(Mat4.scale(50, 50, 1)),
             shadow_pass ? this.floor: this.pure
