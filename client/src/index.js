@@ -585,8 +585,8 @@ export class Main_Demo extends Simulation {
         // This is a rough target of the light.
         // Although the light is point light, we need a target to set the POV of the light
         this.light_view_target = vec4(0, 0, 0, 1);
-        // this.light_field_of_view = 130 * Math.PI / 180; // 130 degree
-        this.light_field_of_view = 2 * Math.PI ; // 360 degrees
+        this.light_field_of_view = 130 * Math.PI / 180; // 130 degrees arbitrarily
+        // this.light_field_of_view = 2 * Math.PI ; // 360 degrees
 
 
         program_state.lights = [new Light(this.light_position, this.light_color, 100000)];
