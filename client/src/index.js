@@ -317,7 +317,21 @@ export class Main_Demo extends Simulation {
             this.userPos = genRandomStartingPos()
             this.cameraRotation = [this.userPos[2] < 0 ? Math.PI : 0, 0]
             this.userVel = [0, 0, 0]
+        } else if (data.type === 'leaderboard-update') {
+            this.updateLeaderboard(data.leaderboard);
         }
+    }
+
+    updateLeaderboard(leaderboardData) {
+        const leaderboardList = document.getElementById('leaderboard-list');
+        leaderboardList.innerHTML = ''; 
+        const topFive = leaderboardData.slice(0, 5);
+    
+        topFive.forEach(player => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `Player ${player.ID}: ${player.Score}`;
+            leaderboardList.appendChild(listItem);
+        });
     }
 
     addOrUpdatePlayerMarker(id, position, rotation, skin) {
