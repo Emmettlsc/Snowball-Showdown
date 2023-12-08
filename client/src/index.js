@@ -92,9 +92,9 @@ export class Simulation extends Scene {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
         }
 
-        // for(let s of this.snowflakes) { // Turn off snowflakes for testing shadows
-        //     s.shape.draw(context, program_state, s.drawn_location, s.material);
-        // }
+        for(let s of this.snowflakes) {
+            s.shape.draw(context, program_state, s.drawn_location, s.material);
+        }
 
     }
 
@@ -166,14 +166,6 @@ export class Main_Demo extends Simulation {
 
 
         // Initialize textures for shadows
-        // For the teapot
-        // this.stars = new Material(new Shadow_Textured_Phong_Shader(1), {
-        //     color: color(.5, .5, .5, 1),
-        //     ambient: .4, diffusivity: .5, specularity: .5,
-        //     color_texture: new Texture("assets/stars.png"),
-        //     light_depth_texture: null
-        //
-        // });
 
         // For the floor and wall obstacles
         this.floor = new Material(new Shadow_Textured_Phong_Shader(1), {
@@ -511,7 +503,7 @@ export class Main_Demo extends Simulation {
 
         }
 
-        // console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
+        console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
         for(let i = 0; i < this.snowflakes.length; i++) {
 
             let s = this.snowflakes[i];
@@ -531,24 +523,24 @@ export class Main_Demo extends Simulation {
         }
         this.bodies = this.bodies.filter(b => b.center.norm() < 200)
         // Add snowflakes each frame
-        // for(let i = 0; i < 3; i++) { // Turn off snowflakes while testing shadows
-        //     //TODO: only spawn snowflakes within the user's field of view
-        //     let snowflakeLocation = Mat4.identity();
-        //     snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
-        //
-        //     this.snowflakes.push(
-        //         new Body(
-        //             this.data.shapes.snowflake,
-        //             this.materials.snowflakeMtl.override({localTime: 0.0}),
-        //             vec3(0.3, 0.3, 0.3),
-        //         ).emplace(
-        //             snowflakeLocation,
-        //             vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
-        //             0
-        //         )
-        //     )
-        //
-        // }
+        for(let i = 0; i < 3; i++) {
+            //TODO: only spawn snowflakes within the user's field of view
+            let snowflakeLocation = Mat4.identity();
+            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+
+            this.snowflakes.push(
+                new Body(
+                    this.data.shapes.snowflake,
+                    this.materials.snowflakeMtl.override({localTime: 0.0}),
+                    vec3(0.3, 0.3, 0.3),
+                ).emplace(
+                    snowflakeLocation,
+                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                    0
+                )
+            )
+
+        }
 
     }
 
@@ -761,8 +753,7 @@ export class Main_Demo extends Simulation {
 
 
 
-    // Functions to implement shadows
-
+    // Change the parameters depending on if it's the first pass or second pass (of shadow mapping)
     render_scene(context, program_state, shadow_pass, draw_light_source=false, draw_shadow=false) {
         // shadow_pass: true if this is the second pass that draw the shadow.
         // draw_light_source: true if we want to draw the light source.
