@@ -28,6 +28,10 @@ export class Test_Data {
             snowball_flatshaded: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(3),
 
             snowflake: new defs.Triangle,
+
+            sphere: new defs.Subdivision_Sphere(6),
+
+            square_2d: new defs.Square(),
         };
 
         const shader = new defs.Fake_Bump_Map(1);
@@ -51,7 +55,9 @@ export class Test_Data {
             snowgroundMtl:       new Material(new defs.Textured_Phong(), { ambient: 1.0, texture: new Texture("assets/snow.jpg")   }),
             wallMtl:             new Material(new defs.Textured_Phong(), { ambient: 0.3, texture: new Texture("assets/snow.jpg")   }),
             mapFloorMtl:         new Material(new defs.Textured_Phong(), { ambient: 0.7, texture: new Texture("assets/snow.jpg")   }),
-            playerMtl:           new Material(new defs.Textured_Phong(), { ambient: 0.5, texture: new Texture("assets/snow.jpg"), color: color(1, 0.5, 0.5, 1) }),
+            playerMtl_red:           new Material(new defs.Textured_Phong(), { ambient: 0.5, texture: new Texture("assets/snow.jpg"), color: color(1, 0.5, 0.5, 1) }),
+            playerMtl_green:           new Material(new defs.Textured_Phong(), { ambient: 0.5, texture: new Texture("assets/snow.jpg"), color: color(0.5, 1, 0.5, 1) }),
+            playerMtl_blue:           new Material(new defs.Textured_Phong(), { ambient: 0.5, texture: new Texture("assets/snow.jpg"), color: color(0.5, 0.5, 1, 1) }),
             fullGround:          new Material(new defs.Textured_Phong(), { ambient: 0.6, texture: new Texture("assets/snow.jpg"), color: color(0.6, 0.6, 1, 1) }),
             backgroundOne:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a1_c2.png")   }),
             backgroundTwo:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a2.png")   }),
@@ -64,6 +70,11 @@ export class Test_Data {
             }),
 
             white: new Material(shader, {
+                color: color(0, 0, 0, 1),
+                ambient: .7,
+            }),
+
+            plainMaterial: new Material(new defs.Basic_Shader(), {
                 color: color(0, 0, 0, 1),
                 ambient: .7,
             }),

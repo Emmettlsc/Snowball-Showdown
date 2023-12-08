@@ -1,3 +1,5 @@
+// Shadows use code from: https://github.com/Robert-Lu/tiny-graphics-shadow_demo
+
 import {defs, tiny} from '../examples/common.js';
 import {Body} from './body.js'
 import {Snowball} from './snowball.js'
@@ -8,6 +10,7 @@ import { mapComponents, genRandomStartingPos, genRandomPowerupPos } from './map.
 import { checkMapComponentCollisions } from './collisions.js';
 import { CONST } from './constants.js'
 import {Test_Data} from './materials.js'
+import {Buffered_Texture, Shadow_Textured_Phong_Shader, Depth_Texture_Shader_2D, Color_Phong_Shader, LIGHT_DEPTH_TEX_SIZE} from './shadowshaders.js'
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
@@ -89,9 +92,13 @@ export class Simulation extends Scene {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
         }
 
-        for(let s of this.snowflakes) {
-            s.shape.draw(context, program_state, s.drawn_location, s.material);
+        if(this.use_snowflakes)
+        {
+            for(let s of this.snowflakes) {
+                s.shape.draw(context, program_state, s.drawn_location, s.material);
+            }
         }
+
 
     }
 
@@ -118,6 +125,8 @@ export class Main_Demo extends Simulation {
         this.shapes.cube = new defs.Cube();
         // this.shapes.snowman = new Shape_From_File("assets/snowman.obj");
         this.shapes.snowman = new Shape_From_File("assets/snow.obj");
+        this.shapes.boots = new Shape_From_File("assets/boots.obj");
+        this.shapes.gun = new Shape_From_File("assets/gun.obj");
         const shader = new defs.Fake_Bump_Map(1);
 
         this.materials = Object.assign({}, this.data.materials);
@@ -150,6 +159,7 @@ export class Main_Demo extends Simulation {
 
         let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
+        // let defaultMoveSpeed = vec3(10, 10, 10); // NOTE: made this faster for testing purposes
         this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
         this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed); //1 = fireRate
 
@@ -163,6 +173,7 @@ export class Main_Demo extends Simulation {
         this.powerupPos = null // null | [x, y, z]
         this.powerupType = 0 // 0: none, 1: firerate, 2: jump
         this.activePowerup = 0 //0: none, 1: firerate: 2: jump
+
 
         //menu
         const slider = document.getElementById("slider");
@@ -180,6 +191,53 @@ export class Main_Demo extends Simulation {
                 document.getElementById('skin-text').style.color = value
             }
         })
+        const sbtn = document.getElementById('shadow-btn')
+        sbtn.addEventListener('click', e => {
+            this.use_shadows = !this.use_shadows 
+            sbtn.innerText = this.use_shadows ? 'Shadow mode: on' : 'Shadow mode: off'
+        })
+        const sfbtn = document.getElementById('snowflake-btn')
+        sfbtn.addEventListener('click', e => {
+            console.log(this.use_snowflakes)
+            this.use_snowflakes = !this.use_snowflakes 
+            sfbtn.innerText = this.use_snowflakes ? 'Snowflakes: on' : 'Snowflakes: off'
+        })
+
+        // Initialize textures for shadows
+
+        // For the floor and wall obstacles
+        this.floor = new Material(new Shadow_Textured_Phong_Shader(1), {
+            color: color(1, 1, 1, 1), ambient: .3, diffusivity: 0.6, specularity: 0.1, smoothness: 64,
+            // color_texture: null,
+            color_texture: new Texture("assets/snow.jpg"),
+            light_depth_texture: null
+        })
+
+        // For the first pass
+        this.pure = new Material(new Color_Phong_Shader(), {
+        })
+
+        // For light source
+        this.light_src = new Material(new defs.Phong_Shader(), {
+            color: color(1, 1, 1, 0.5), ambient: 1, diffusivity: 0, specularity: 0
+        });
+        // this.light_src = new Material(new defs.Textured_Phong(), {
+        //     // color: color(0, 0, 0, 1),
+        //     ambient: 1.0,
+        //     texture: new Texture("assets/discoballtexture.jpg", "NEAREST")
+        // });
+
+        // For depth texture display
+        this.depth_tex =  new Material(new Depth_Texture_Shader_2D(), {
+            color: color(0, 0, .0, 1),
+            ambient: 1, diffusivity: 0, specularity: 0, texture: null
+        });
+
+        // To make sure texture initialization only does once
+        this.init_ok = false;
+
+        this.use_shadows = true; // Toggle to turn shadows on/off
+        this.use_snowflakes = true; // Toggle to turn snowflakes on/off
     }
 
     initWebSocket() {
@@ -225,7 +283,7 @@ export class Main_Demo extends Simulation {
             // Handle move event
             const id = data.id
             const position = { x: data.x, y: data.y, z: data.z, };
-            this.addOrUpdatePlayerMarker(id, position, data.rotation);
+            this.addOrUpdatePlayerMarker(id, position, data.rotation, data.skin);
         } else if (data.type === 'assignID') {
             this.id = data.id;
         } else if (data.type === 'playerDisconnected') {
@@ -262,7 +320,7 @@ export class Main_Demo extends Simulation {
         }
     }
 
-    addOrUpdatePlayerMarker(id, position, rotation) {
+    addOrUpdatePlayerMarker(id, position, rotation, skin) {
         if (id === this.id) {
             return;
         }
@@ -270,11 +328,12 @@ export class Main_Demo extends Simulation {
             const player = this.players.get(id);
             player.serverPos = position
             player.rotation = rotation
+            player.skin = skin
             // player.x = position.x;
             // player.y = position.y;
             // player.z = position.z;
         } else if (id) {
-            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation}//new Player(id, position.x, position.y, position.z);
+            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation, skin }//new Player(id, position.x, position.y, position.z);
             this.players.set(id, player);
         }
 
@@ -523,25 +582,30 @@ export class Main_Demo extends Simulation {
 
         }
         this.bodies = this.bodies.filter(b => b.center.norm() < 200)
+
         // Add snowflakes each frame
-        for(let i = 0; i < 3; i++) {
-            //TODO: only spawn snowflakes within the user's field of view
-            let snowflakeLocation = Mat4.identity();
-            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+        if(this.use_snowflakes)
+        {
+            for(let i = 0; i < 3; i++) {
+                //TODO: only spawn snowflakes within the user's field of view
+                let snowflakeLocation = Mat4.identity();
+                snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
 
-            this.snowflakes.push(
-                new Body(
-                    this.data.shapes.snowflake,
-                    this.materials.snowflakeMtl.override({localTime: 0.0}),
-                    vec3(0.3, 0.3, 0.3),
-                ).emplace(
-                    snowflakeLocation,
-                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
-                    0
+                this.snowflakes.push(
+                    new Body(
+                        this.data.shapes.snowflake,
+                        this.materials.snowflakeMtl.override({localTime: 0.0}),
+                        vec3(0.3, 0.3, 0.3),
+                    ).emplace(
+                        snowflakeLocation,
+                        vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                        0
+                    )
                 )
-            )
 
+            }
         }
+
 
     }
 
@@ -551,50 +615,117 @@ export class Main_Demo extends Simulation {
 
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
-            program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix).
+            // program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix). // UNCOMMENT THIS AFTER TESTING SHADOWS
             // this.children.push(new defs.Program_State_Viewer());
+
+            program_state.set_camera(Mat4.look_at( // ONLY FOR TESTING SHADOWS
+                vec3(0, 12, 12),
+                vec3(0, 2, 0),
+                vec3(0, 1, 0)
+            )); // Locate the camera here
         }
         program_state.projection_transform = Mat4.perspective(
             this.userZoom ? Math.PI / 8 : 0.33 * Math.PI, 
             context.width / context.height, 
             1, 500
         );
-        program_state.lights = [
-            // new Light(vec4(0, -100, 0, 1), color(0, 0, 1, 1), 10000),
-            // new Light(vec4(0, 160, 0, 1), color(1, 1, 1, 1), 100000)
-        ];
-        // Draw the ground
-        this.shapes.square.draw(
-            context, program_state, 
-            Mat4.translation(0, -2, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 1)),
-            this.materials.snowgroundMtl
-        )
-        this.shapes.square.draw(
-            context, program_state, 
-            Mat4.translation(0, -20, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 1)),
-            this.materials.fullGround
-        )
-        this.shapes.ball.draw(
-            context, program_state,
-            Mat4.translation(0, 0, 0)
-                .times(Mat4.rotation(0, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 200)),
-            this.materials.backgroundOne
-        )
 
-        for (const piece of mapComponents) {
-            this.shapes.cube.draw(
-                context, program_state,
-                Mat4.translation(...piece.translate)
-                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
-                    .times(Mat4.scale(...piece.scale)),
-                piece.rotation[0] ? this.materials.mapFloorMtl : this.materials.wallMtl
-            )
+        // For shadows
+        const gl = context.context;
+        if (!this.init_ok) {
+            const ext = gl.getExtension('WEBGL_depth_texture'); // Need WebGL's depth texture extension to be able to render shadows
+            if (!ext) {
+                return alert('need WEBGL_depth_texture');  // eslint-disable-line
+            }
+            this.texture_buffer_init(gl);
+
+            this.init_ok = true;
         }
+
+
+        // The position of the light
+        this.light_position = Mat4.rotation(0, 0, 1, 0).times(vec4(1, 15, 0, 1));
+        // The color of the light
+        this.light_color = color(1,1,0,1);
+
+        // This is a rough target of the light.
+        // Although the light is point light, we need a target to set the POV of the light
+        this.light_view_target = vec4(0, 0, 0, 1);
+        //  TODO: the "cone" of the light is rather small, so wall obstacles on the edges of the map don't get shadows
+        this.light_field_of_view = 160 * Math.PI / 180; // 160 degrees arbitrarily
+
+        // Adjust the last parameter to make the light bigger
+        program_state.lights = [new Light(this.light_position, this.light_color, this.use_shadows ? 10000 : 0)];
+
+        if(this.use_shadows)
+        {
+            // Render shadows
+            // Step 1: set the perspective and camera to the POV of light
+            const light_view_mat = Mat4.look_at(
+                vec3(this.light_position[0], this.light_position[1], this.light_position[2]),
+                vec3(this.light_view_target[0], this.light_view_target[1], this.light_view_target[2]),
+                vec3(0, 1, 0), // assume the light to target will have a up dir of +y, maybe need to change according to your case
+            );
+            const light_proj_mat = Mat4.perspective(this.light_field_of_view, 1, 0.5, 500);
+            // Bind the Depth Texture Buffer
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer); // Draw to the lightDepthFramebuffer instead of the framebuffer that's shown onscreen
+            gl.viewport(0, 0, this.lightDepthTextureSize, this.lightDepthTextureSize); // Viewport is the texture instead of the user's viewport
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            // Prepare uniforms
+            program_state.light_view_mat = light_view_mat;
+            program_state.light_proj_mat = light_proj_mat;
+            program_state.light_tex_mat = light_proj_mat;
+            program_state.view_mat = light_view_mat;
+            program_state.projection_transform = light_proj_mat;
+            this.render_scene(context, program_state, false,false, false); // Do z-buffer algorithm from light's POV
+
+            // Step 2: unbind, draw to the canvas
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Don't draw to the lightDepthFrameBuffer, draw to the framebuffer that the user will see
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // Re-set the viewport to the user's viewport
+            program_state.view_mat = program_state.camera_inverse;
+            // program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
+            program_state.projection_transform = Mat4.perspective(this.userZoom ? Math.PI / 8 : 0.33 * Math.PI, context.width / context.height, 1, 500);
+            this.render_scene(context, program_state, true,true, true); // Do the z-buffer algorithm from the eye's POV
+
+        }
+
+
+        else if (!this.use_shadows)
+        {
+            // Draw the ground
+            this.shapes.square.draw(
+                context, program_state,
+                Mat4.translation(0, -2, 0)
+                    .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                    .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 1)),
+                this.materials.snowgroundMtl
+            )
+            this.shapes.square.draw(
+                context, program_state,
+                Mat4.translation(0, -20, 0)
+                    .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                    .times(Mat4.scale(200, 200, 1)),
+                this.materials.fullGround
+            )
+            this.shapes.ball.draw(
+                context, program_state,
+                Mat4.translation(0, 0, 0)
+                    .times(Mat4.rotation(0, 1, 0, 0))
+                    .times(Mat4.scale(200, 200, 200)),
+                this.materials.backgroundOne
+            )
+
+            for (const piece of mapComponents) {
+                this.shapes.cube.draw(
+                    context, program_state,
+                    Mat4.translation(...piece.translate)
+                        .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+                        .times(Mat4.scale(...piece.scale)),
+                    this.materials.wallMtl
+                )
+            }
+        }
+
 
         this.checkAllDownKeys()
         //draw all the players
@@ -610,7 +741,7 @@ export class Main_Demo extends Simulation {
             this.shapes.snowman.draw(
                 context, program_state,
                 Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(-player.rotation + 160, 0, 1, 0)),
-                this.materials.playerMtl
+                this.materials['playerMtl_' + (player.skin || 'red')]
             )
         })
 
@@ -658,7 +789,7 @@ export class Main_Demo extends Simulation {
         this.userPos[1] += this.userVel[1]
         if (Date.now() > this.socketTimeLastSent + 50) {
             this.socketTimeLastSent = Date.now()
-            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0] });
+            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0], skin: (this.userSkin || 'red') });
         }
         // this.userMovementAmt = [0, 0]
 
@@ -673,7 +804,7 @@ export class Main_Demo extends Simulation {
                 this.activePowerup = this.powerupType
                 this.powerupType = 0
                 if (this.activePowerup === 1) {
-                    this.player.setFireRate(3)
+                    this.player.setFireRate(5)
                     setTimeout(() => {
                         this.activePowerup = 0;
                         this.player.setFireRate(1)
@@ -693,11 +824,12 @@ export class Main_Demo extends Simulation {
         scope.style.borderColor = this.activePowerup === 2 ? 'green' : ''
         //draw powerups
         if (this.powerupPos)
-            this.shapes.cube.draw(
+            this.shapes[this.powerupType === 2 ? 'boots' : 'gun'].draw(
                 context, program_state,
                 Mat4.translation(...this.powerupPos)
                     .times(Mat4.scale(1, 1, 1))
-                    .times(Mat4.rotation(program_state.animation_time * 0.001, 0, 1, 0)),
+                    .times(Mat4.rotation(program_state.animation_time * 0.001, 0, 1, 0))
+                    .times(Mat4.rotation(-Math.PI / 2, 1, 0, 0)),
                 this.powerupType === 1 ? this.materials.powerupMtlFire : this.materials.powerupMtlJump
             )
         else if (!this.activePowerup) {
@@ -717,5 +849,131 @@ export class Main_Demo extends Simulation {
         program_state.camera_transform.pre_multiply(Mat4.translation(...this.userPos));
         program_state.camera_inverse.post_multiply(Mat4.translation(...this.userPos.map(v => -v)));
         this.camera_transform = program_state.camera_transform
+    }
+
+
+
+    // Change the parameters depending on if it's the first pass or second pass (of shadow mapping)
+    render_scene(context, program_state, shadow_pass, draw_light_source=false, draw_shadow=false) {
+        // shadow_pass: true if this is the second pass that draw the shadow.
+        // draw_light_source: true if we want to draw the light source.
+        // draw_shadow: true if we want to draw the shadow
+
+        let light_position = this.light_position;
+        let light_color = this.light_color;
+        const t = program_state.animation_time;
+
+        program_state.draw_shadow = draw_shadow;
+
+        if (draw_light_source && shadow_pass) {
+            this.shapes.sphere.draw(context, program_state,
+                Mat4.translation(light_position[0], light_position[1], light_position[2]).times(Mat4.scale(2.0,2.0,2.0)),
+                this.light_src.override({color: light_color}));
+        }
+
+
+        // Draw the ground
+        //  TODO: the ground is either a little high or a little low, adjust the translation amount
+        this.shapes.cube.draw(
+            context, program_state,
+            Mat4.translation(0, -2, 0)
+                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 0.1)),
+            shadow_pass ? this.floor: this.pure
+        )
+        // this.shapes.cube.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, -20, 0)
+        //         .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 1)),
+        //     shadow_pass ? this.floor : this.pure
+        // )
+        this.shapes.ball.draw( // Draw the mountains in the background
+            context, program_state,
+            Mat4.translation(0, 0, 0)
+                .times(Mat4.rotation(0, 1, 0, 0))
+                .times(Mat4.scale(200, 200, 200)),
+            // shadow_pass ? this.floor : this.pure
+            this.materials.backgroundOne // no shadows needed for the background
+        )
+
+        for (const piece of mapComponents) { // Draw wall obstacles and the steps
+            this.shapes.cube.draw(
+                context, program_state,
+                Mat4.translation(...piece.translate)
+                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+                    .times(Mat4.scale(...piece.scale)),
+                // shadow_pass ? this.floor : this.pure
+                shadow_pass ? this.floor : this.pure
+            )
+        }
+
+
+    }
+
+    // For shadows -- creates the depth texture
+    texture_buffer_init(gl) {
+        // Depth Texture
+        this.lightDepthTexture = gl.createTexture();
+        // Bind it to TinyGraphics
+        this.light_depth_texture = new Buffered_Texture(this.lightDepthTexture);
+        // this.stars.light_depth_texture = this.light_depth_texture
+        this.floor.light_depth_texture = this.light_depth_texture
+
+        this.lightDepthTextureSize = LIGHT_DEPTH_TEX_SIZE;
+        gl.bindTexture(gl.TEXTURE_2D, this.lightDepthTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,      // target
+            0,                  // mip level
+            gl.DEPTH_COMPONENT, // internal format
+            this.lightDepthTextureSize,   // width
+            this.lightDepthTextureSize,   // height
+            0,                  // border
+            gl.DEPTH_COMPONENT, // format
+            gl.UNSIGNED_INT,    // type
+            null);              // data
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // Depth Texture Buffer
+        this.lightDepthFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,       // target
+            gl.DEPTH_ATTACHMENT,  // attachment point
+            gl.TEXTURE_2D,        // texture target
+            this.lightDepthTexture,         // texture
+            0);                   // mip level
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        // create a color texture of the same size as the depth texture
+        // see article (https://webglfundamentals.org/webgl/lessons/webgl-shadows.html) for why this is needed
+        this.unusedTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.unusedTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            this.lightDepthTextureSize,
+            this.lightDepthTextureSize,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // attach it to the framebuffer
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,        // target
+            gl.COLOR_ATTACHMENT0,  // attachment point
+            gl.TEXTURE_2D,         // texture target
+            this.unusedTexture,         // texture
+            0);                    // mip level
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 }
