@@ -238,6 +238,7 @@ export class Main_Demo extends Simulation {
 
         this.use_shadows = true; // Toggle to turn shadows on/off
         this.use_snowflakes = true; // Toggle to turn snowflakes on/off
+        this.killCamActive = false
     }
 
     initWebSocket() {
@@ -249,7 +250,8 @@ export class Main_Demo extends Simulation {
         };
 
         this.socket.onmessage = (event) => {
-            this.handleWebSocketMessage(event);
+            if (!this.killCamActive)
+                this.handleWebSocketMessage(event);
         };
 
         this.socket.onerror = (event) => {
@@ -339,6 +341,10 @@ export class Main_Demo extends Simulation {
     handleKeydown(e) {
         if (e.key === 'e') {
             this.userZoom = !this.userZoom
+        }
+        if (e.key === 'k') {
+            this.moveActive = false
+            this.killCamActive = true
         }
         if (e.key === 'q' || e.key === 'Escape') {
             this.moveActive = false
@@ -597,6 +603,11 @@ export class Main_Demo extends Simulation {
     display(context, program_state) { 
         // display(): Draw everything else in the scene besides the moving bodies.
         super.display(context, program_state);
+
+        if (this.killCamActive) {
+
+            console.log('kc')
+        }
 
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
