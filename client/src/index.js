@@ -271,6 +271,7 @@ export class Main_Demo extends Simulation {
 
     handleWebSocketMessage(event) {
         let data;
+        console.log("Raw message received:", event.data);
         try {
             data = JSON.parse(event.data);
         } catch  (e) {

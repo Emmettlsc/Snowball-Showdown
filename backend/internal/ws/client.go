@@ -80,31 +80,21 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			// Check if the message contains multiple IDs
-			if containsMultipleIDs(string(message)) {
-				fmt.Println("Warning: Message contains multiple IDs: %s", string(message))
-			}
-
+			// Send the message in a separate WebSocket frame
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
-			w.Write(message)
 
-			// Check and write queued chat messages
-			n := len(c.send)
-			for i := 0; i < n; i++ {
+			// Handle additional queued messages separately
+			for len(c.send) > 0 {
 				queuedMessage := <-c.send
-				if containsMultipleIDs(string(queuedMessage)) {
-					fmt.Println("Warning: Queued message contains multiple IDs: %s", string(queuedMessage))
+				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err := c.conn.WriteMessage(websocket.TextMessage, queuedMessage); err != nil {
+					return
 				}
-				w.Write(queuedMessage)
 			}
 
-			if err := w.Close(); err != nil {
-				return
-			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
