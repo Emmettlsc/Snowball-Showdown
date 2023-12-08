@@ -14,14 +14,37 @@
 <div class="canvas-widget" id="main-canvas"></div>
 <div id="scope"></div>
 <div id="chargebar"></div>
+<div class="menu-bg flex flex-col gap-2 absolute inset-0 justify-center items-center bg-black bg-opacity-60 z-30 transition duration-500">
+    <div class="p-4 bg-white bg-opacity-80 rounded">
+        <div class="text-2xl font-bold text-center pb-2">Snowball Showdown</div>
+        <li class="text-gray-600">Use WASD to move and space to jump</li>
+        <li class="text-gray-600">Throw a snowball my clicking your mouse. Hold down to charge a shot</li>
+        <li class="text-gray-600">Collect green powerups to jump higher and red powerups to shoot faster</li>
+        <li class="text-gray-600">Press Start to join game and "q" to come back to the menu</li>
+    </div>
+    <div class="menu grid grid-cols-3 bg-white rounded p-4 gap-6">
+        <div>
+            <div class="font-bold text-lg pb-4" id="skin-text">Skin</div>
+            <div class="flex flex-col gap-2" id="skin-picker">
+                <div class="rounded w-full h-6 cursor-pointer hover:border-2 border-black" value="red" style="background: red;"></div>
+                <div class="rounded w-full h-6 cursor-pointer hover:border-2 border-black" value="green" style="background: green;"></div>
+                <div class="rounded w-full h-6 cursor-pointer hover:border-2 border-black" value="blue" style="background: blue;"></div>
+            </div>
+        </div>
+        <div class="h-full flex items-center" id="start-col">
+            <div class="mx-auto w-min bg-black text-white font-bold text-2xl transition rounded-lg py-2 px-3 cursor-pointer hover:border-2 border-blue-400">Start</div>
+        </div>
+        <div>
+            <div id="slider-label" class="font-bold text-lg pb-4 w-36">Sensitivity: 0.5</div>
+            <input type="range" id="slider" name="slider" min="0.1" max="1" step="0.01" value="0.5" />
+        </div>
+    </div>
+</div>
+<script src="https://cdn.tailwindcss.com"></script>
 <script type=module>
-    // ********************* THE ENTRY POINT OF YOUR WHOLE PROGRAM STARTS HERE *********************
-    // Indicate which element on the page you want the Canvas_Widget to replace with a 3D WebGL area:
     const element_to_replace = document.querySelector("#main-canvas");
     import {Main_Scene, Additional_Scenes, Canvas_Widget} from './main-scene.js';
-    // Import the file that defines a scene.
     const scenes = [Main_Scene, ...Additional_Scenes].map(scene => new scene());
-    // This line creates your scene.
     new Canvas_Widget(element_to_replace, scenes, { show_canvas: true, make_controls: true, show_explanation: false, make_editor: false, make_code_nav: false });
 </script>
 

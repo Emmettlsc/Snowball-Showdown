@@ -88,9 +88,6 @@ export const mapComponents = [
   {"translate":[-78,0,55],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
   {"translate":[87,0,-60],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
 
-  //secret underground
-  { translate: [-100,  -2, -20],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
-
   // //left route
   //   //stairs
   //   { translate: [-40,  -1.5, 4],    rotation: [1, 0, 0], roationAngle: 0.578 * Math.PI, scale: [6, 1.5, 0.1] },

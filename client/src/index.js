@@ -163,6 +163,23 @@ export class Main_Demo extends Simulation {
         this.powerupPos = null // null | [x, y, z]
         this.powerupType = 0 // 0: none, 1: firerate, 2: jump
         this.activePowerup = 0 //0: none, 1: firerate: 2: jump
+
+        //menu
+        const slider = document.getElementById("slider");
+        slider.addEventListener("input", function() {
+            const sliderValue = slider.value;
+            document.getElementById('slider-label').innerText = `Sensitivity: ${sliderValue}`
+            CONST.USER_ROTATION_SPEED_X = sliderValue * 2 * 0.003
+            CONST.USER_ROTATION_SPEED_Y = sliderValue * 2 * 0.003
+        });
+        const skinPicker = document.getElementById('skin-picker')
+        skinPicker.addEventListener('click', (e) => {
+            const value = e.target.getAttribute('value')
+            if (value) {
+                this.userSkin = value
+                document.getElementById('skin-text').style.color = value
+            }
+        })
     }
 
     initWebSocket() {
@@ -274,6 +291,7 @@ export class Main_Demo extends Simulation {
             this.moveActive = false
             document.exitPointerLock()
             console.log(this.userPos)
+            document.getElementsByClassName('menu-bg')[0].style.opacity = 1;
         }
         if (['w', 'a', 's', 'd', ' '].includes(e.key))
             this.downKeys[e.key] = true
@@ -286,6 +304,10 @@ export class Main_Demo extends Simulation {
     }
 
     handleMousedown(e) {
+        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
+            return
+
+        document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
         e.target?.requestPointerLock()
         this.moveActive = true
 
@@ -296,6 +318,9 @@ export class Main_Demo extends Simulation {
     }
 
     handleMouseup(e) {
+        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
+            return
+
         this.charging = false
         this.requestThrowSnowball = true
         document.getElementById('chargebar').style.opacity = 0
@@ -309,6 +334,9 @@ export class Main_Demo extends Simulation {
     }
 
     checkAllDownKeys() {
+        if (!this.moveActive)
+            return this.userMovementAmt = [0, 0]
+
         if (this.downKeys['w'] || this.downKeys['s'])
             this.userMovementAmt[1] = (this.downKeys['w'] ? 1 : -1)
         else 
