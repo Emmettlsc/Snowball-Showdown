@@ -184,6 +184,7 @@ export class Main_Demo extends Simulation {
 
     initWebSocket() {
         this.socketTimeLastSent = 0
+        // this.socket = new WebSocket('ws:localhost:8080/ws') 
         this.socket = new WebSocket('wss://snow.bazzled.com/ws') //new WebSocket('ws://184.72.14.50/ws');
 
         this.socket.onopen = () => {
