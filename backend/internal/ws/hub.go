@@ -133,7 +133,7 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 
-		ccase message := <-h.broadcast:
+		case message := <-h.broadcast:
 			var jsonMap map[string]interface{}
 			json.Unmarshal(message, &jsonMap)
 
@@ -141,7 +141,7 @@ func (h *Hub) Run() {
 			case "player-kill":
 				// Extract the killer's ID and update the leaderboard
 				killerID := jsonMap["killerID"].(string) // Replace 'killerID' with the actual field name
-				h.leaderboard.UpdateScore(killerID, 1)  // Assuming each kill is worth 1 point
+				h.leaderboard.UpdateScore(killerID, 1)   // Assuming each kill is worth 1 point
 
 				// Get the updated leaderboard and marshal it into JSON
 				updatedLeaderboard := h.leaderboard.GetSortedScores()
@@ -149,7 +149,7 @@ func (h *Hub) Run() {
 					Type        string        `json:"type"`
 					Leaderboard []PlayerScore `json:"leaderboard"`
 				}{
-					Type: "leaderboard-update",
+					Type:        "leaderboard-update",
 					Leaderboard: updatedLeaderboard,
 				})
 
