@@ -140,8 +140,8 @@ func (h *Hub) Run() {
 			switch jsonMap["type"] {
 			case "player-kill":
 				// Extract the killer's ID and update the leaderboard
-				killerID := jsonMap["killerID"].(string) // Replace 'killerID' with the actual field name
-				h.leaderboard.UpdateScore(killerID, 1)   // Assuming each kill is worth 1 point
+				killerID := jsonMap["id"].(string)     // Replace 'killerID' with the actual field name
+				h.leaderboard.UpdateScore(killerID, 1) // Assuming each kill is worth 1 point
 
 				// Get the updated leaderboard and marshal it into JSON
 				updatedLeaderboard := h.leaderboard.GetSortedScores()
