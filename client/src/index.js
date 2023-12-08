@@ -372,32 +372,47 @@ export class Main_Demo extends Simulation {
     }
 
     handleMousedown(e) {
-        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
-            return
+        if (e.target.closest('.menu')) {
+            if (e.target.closest('#start-col')) {
+                const playerNameInput = document.getElementById('player-name');
+                const playerName = playerNameInput.value.trim();
+                
+                if (!playerName) {
+                    playerNameInput.classList.add('input-error'); 
+                    return;
+                } else {
+                    playerNameInput.classList.remove('input-error'); 
+                }
+    
+                this.socket.send(JSON.stringify({ type: "player-name", name: playerName }));    
 
-        const bgMusic = document.getElementById('background-music');
-        bgMusic.volume = 0.5; // Set the volume (0.0 to 1.0)
-        bgMusic.play().catch(error => {
-            console.error('Error playing background music:', error);
-        });
-
-        document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
-        e.target?.requestPointerLock()
-        this.moveActive = true
-
-        this.downKeys['mouse'] = true
-
-        if(!this.charging)
+                const bgMusic = document.getElementById('background-music');
+                bgMusic.volume = 0.5;
+                bgMusic.play().catch(error => {
+                    console.error('Error playing background music:', error);
+                });
+    
+                document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
+                e.target?.requestPointerLock();
+                this.moveActive = true;
+                playerNameInput.disabled = true; 
+            }
+            return;
+        }
+    
+        this.downKeys['mouse'] = true;
+        if (!this.charging)
             this.charging = true;
     }
 
     handleMouseup(e) {
-        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
-            return
-
-        this.charging = false
-        this.requestThrowSnowball = true
-        document.getElementById('chargebar').style.opacity = 0
+        if (e.target.closest('.menu')) {
+            return;
+        }
+    
+        this.charging = false;
+        this.requestThrowSnowball = true;
+        document.getElementById('chargebar').style.opacity = 0;
     }
 
     handleMousemove(e) {

@@ -22,9 +22,6 @@
 <div id="leaderboard" style="position: fixed; top: 10px; right: 10px; background-color: white; padding: 10px;">
     <h3>Leaderboard</h3>
     <ul id="leaderboard-list">
-        <li>Player1: 150</li>
-        <li>Player2: 120</li>
-        <li>Player3: 100</li>
     </ul>
 </div>
 <div class="menu-bg flex flex-col gap-2 absolute inset-0 justify-center items-center bg-black bg-opacity-60 z-30 transition duration-500">
@@ -45,7 +42,8 @@
             </div>
         </div>
         <div class="h-full flex items-center" id="start-col">
-            <div class="mx-auto w-min bg-black text-white font-bold text-2xl transition rounded-lg py-2 px-3 cursor-pointer hover:bg-red-400">Start</div>
+            <input type="text" id="player-name" placeholder="Enter your name" class="text-center mb-4"/>
+            <div class="mx-auto w-min bg-black text-white font-bold text-2xl transition rounded-lg py-2 px-3 cursor-pointer hover:bg-red-400 disabled:bg-gray-400 disabled:cursor-not-allowed" id="start-button">Start</div>
         </div>
         <div>
             <div id="slider-label" class="font-bold text-lg pb-4 w-36">Sensitivity: 0.5</div>
@@ -53,13 +51,6 @@
             <div id="shadow-btn" class="bg-gray-200 border-black rounded w-full py-2 text-center mt-6 cursor-pointer hover:bg-gray-600 px-2 transition">Shadow mode: on</div>
             <div id="snowflake-btn" class="bg-gray-200 border-black rounded w-full py-2 text-center mt-2 cursor-pointer hover:bg-gray-600 px-2 transition">Snowflakes: on</div>
         </div>
-    </div>
-</div>
-<div class="absolute z-40 left-2 top-2 bg-gray-400 bg-opacity-40 py-2 px-4 text-white">
-    <div class="flex flex-col gap-1">
-        <div>Player 143: 3 kills</div>
-        <div>Player 113: 3 kills</div>
-        <div>Player 014: 3 kills</div>
     </div>
 </div>
 <script src="https://cdn.tailwindcss.com"></script>
