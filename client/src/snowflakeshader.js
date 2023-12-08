@@ -236,10 +236,10 @@ export class Snowflake_Shader extends Particle_Shader {
             material.texture.activate(context);
         }
         if(!material.texture){
-            console.log("No texture!");
+            // console.log("No texture!");
         }
         else if(!material.texture.ready) {
-            console.log("There is a texture but it's not ready!");
+            // console.log("There is a texture but it's not ready!");
         }
 
 
