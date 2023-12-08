@@ -434,7 +434,7 @@ export class Main_Demo extends Simulation {
             this.chargeTime = 0.0; //Not sure about the order in which events are handled so setting it to 0 here
             this.sendPlayerAction({ 
                 id: this.id, 
-                type: 'snowball-throw {"id"} {"id"}', 
+                type: 'snowball-throw', 
                 x: this.userPos[0], 
                 y: this.userPos[1], 
                 z: this.userPos[2], 
