@@ -158,6 +158,8 @@ func (h *Hub) Run() {
 					client.send <- leaderboardMsg
 				}
 
+				fallthrough
+
 			default:
 				// Broadcast other types of messages to all clients except the sender
 				for client := range h.clients {
