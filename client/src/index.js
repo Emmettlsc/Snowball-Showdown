@@ -239,6 +239,9 @@ export class Main_Demo extends Simulation {
         this.use_shadows = true; // Toggle to turn shadows on/off
         this.use_snowflakes = true; // Toggle to turn snowflakes on/off
         this.killCamActive = false
+        this.killCamStack = []
+        this.killCamTime = 0
+        this.killCamPlayerId = null
     }
 
     initWebSocket() {
@@ -270,11 +273,13 @@ export class Main_Demo extends Simulation {
     }
 
 
-    handleWebSocketMessage(event) {
+    handleWebSocketMessage(event, addToStack = true) {
         let data;
         try {
             data = JSON.parse(event.data);
-            event.timeStamp
+            const time = new Date() - 0
+            if (addToStack)
+                this.killCamStack.push({ time, data })
         } catch  (e) {
             console.log(event.data)
             console.log(e)
@@ -314,8 +319,10 @@ export class Main_Demo extends Simulation {
             console.log(this.id)
             if (data.playerKilled !== this.id) // || this.userIsDead)
                 return
-            console.log('user died')
+            console.log('user died', data)
             this.userIsDead = true
+            this.killCamActive = true
+            this.killCamPlayerId = data.id
             this.userPos = genRandomStartingPos()
             this.cameraRotation = [this.userPos[2] < 0 ? Math.PI : 0, 0]
             this.userVel = [0, 0, 0]
@@ -604,9 +611,39 @@ export class Main_Demo extends Simulation {
         // display(): Draw everything else in the scene besides the moving bodies.
         super.display(context, program_state);
 
-        if (this.killCamActive) {
+        document.getElementById('kc-ring').style.opacity = this.killCamActive ? 1 : 0
+        while(this.killCamStack.length > 200)
+            this.killCamStack.shift()
 
-            console.log('kc')
+        if (this.killCamActive) {
+            console.log(this.killCamStack.length)
+            if (!this.killCamTime) {
+                this.killCamTime = this.killCamStack[0].time
+                this.killCamRealTime = (new Date() - 0)
+            }
+
+            const curTime = (new Date() - 0)
+            while (this.killCamStack.length && (this.killCamStack[0].time - this.killCamTime) < (curTime - this.killCamRealTime)) {
+                const event = this.killCamStack.shift()
+                const killCamPlayerMove = (event.data.id === this.killCamPlayerId && event.data.type === 'move')
+                if (killCamPlayerMove) {
+                    this.userPos[0] = this.userPos[0] + 0.3 * (event.data.x - this.userPos[0])
+                    this.userPos[1] = this.userPos[1] + 0.3 * (event.data.y - this.userPos[1])
+                    this.userPos[2] = this.userPos[2] + 0.3 * (event.data.z - this.userPos[2])
+                    // this.userPos = [event.data.x, event.data.y, event.data.z]
+                    this.cameraRotation = [event.data.rotation, 0, 0]
+                }
+                if (event.data.id === this.id)
+                    event.data.id = 'cur-player'
+                event.data = JSON.stringify(event.data)
+                if (!killCamPlayerMove)
+                    this.handleWebSocketMessage(event, false)
+            }
+            if (!this.killCamStack.length) {
+                this.killCamTime = 0
+                this.killCamActive = false
+                this.moveActive = true
+            }
         }
 
         if (!context.scratchpad.controls) {
@@ -785,7 +822,11 @@ export class Main_Demo extends Simulation {
         this.userPos[1] += this.userVel[1]
         if (Date.now() > this.socketTimeLastSent + CONST.WEBSOCKET_SEND_MIN_DELAY) {
             this.socketTimeLastSent = Date.now()
-            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0], skin: (this.userSkin || 'red') });
+            const data = { id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0], skin: (this.userSkin || 'red') }
+            const time = Date.now() - 0
+            this.sendPlayerAction(data);
+            if (!this.killCamActive)
+                this.killCamStack.push({ time, data })
         }
 
         if (this.userPos[1] > activeCeiling - 0.1){
