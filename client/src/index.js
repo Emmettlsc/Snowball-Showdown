@@ -273,6 +273,7 @@ export class Main_Demo extends Simulation {
         let data;
         try {
             data = JSON.parse(event.data);
+            event.timeStamp
         } catch  (e) {
             console.log(event.data)
             console.log(e)
@@ -299,7 +300,7 @@ export class Main_Demo extends Simulation {
                     this.data.shapes.ball, 
                     this.materials.snowballTexturedMtl,
                     vec3(0.7, 0.7, 0.7),
-                    this.player
+                    data.id
                 ).emplace(
                     Mat4.translation(...userDirection.map(v => 5 * v)).times(data.matrix),
                     snowballVelocity, // vec3(0, -1, 0).randomized(2).normalized().times(3),
@@ -343,21 +344,14 @@ export class Main_Demo extends Simulation {
             player.serverPos = position
             player.rotation = rotation
             player.skin = skin
-            // player.x = position.x;
-            // player.y = position.y;
-            // player.z = position.z;
         } else if (id) {
-            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation, skin }//new Player(id, position.x, position.y, position.z);
+            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation, skin }
             this.players.set(id, player);
         }
 
     }
 
     handleKeydown(e) {
-        // if (e.key === 'p') {
-        //     const canvas = document.getElementsByTagName('canvas')?.[0]
-        //     canvas.requestFullscreen()
-        // }
         if (e.key === 'e') {
             this.userZoom = !this.userZoom
         }
@@ -447,19 +441,10 @@ export class Main_Demo extends Simulation {
         return this.material.override(color(.6, .6 * Math.random(), .6 * Math.random(), 1));
     }
 
-    // checkPlayerCollisions(x, y, z) {
-    //     for (const player of this.players) {
-    //         console.log(player.x)
-    //         console.log(Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2 + (player.z - z) ** 2))
-    //         if (Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2 + (player.z - z) ** 2) < 20.0) {
-    //             return true;
-    //         }
-    //     }
-    // }
-
     // returns id of player collision or null if none
     checkPlayerCollisions(x, y, z) {
         let pid = null
+        this.userPos
         for (const k of this.players.keys()) {
             const player = this.players.get(k)
             if (Math.sqrt((player.x-x)**2 + (player.y-y)**2 + (player.z-z)**2 ) < 2)
@@ -536,8 +521,7 @@ export class Main_Demo extends Simulation {
                     this.bodies.splice(i, 1);
                     i--;
                 }
-                else
-                    continue;
+                continue;
             }
 
 
@@ -545,8 +529,10 @@ export class Main_Demo extends Simulation {
             b.linear_velocity[1] += dt * -9.8;
 
             // Player collision detection w/ snowballs here:
-            let collisionWithPlayer = this.checkPlayerCollisions(b.center[0], b.center[1], b.center[2]);
+            // only check snowballs that this.player has thrown
+            let collisionWithPlayer = (b.throwerID === this.player.getPlayerID()) && this.checkPlayerCollisions(b.center[0], b.center[1], b.center[2]);
             if(collisionWithPlayer) { 
+                console.log(b.timeSinceCollision())
                 console.log("HERE")
                 b.slow_snowball();
                 b.indicateCollision();
@@ -801,11 +787,10 @@ export class Main_Demo extends Simulation {
         else 
             this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
         this.userPos[1] += this.userVel[1]
-        if (Date.now() > this.socketTimeLastSent + 50) {
+        if (Date.now() > this.socketTimeLastSent + CONST.WEBSOCKET_SEND_MIN_DELAY) {
             this.socketTimeLastSent = Date.now()
             this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0], skin: (this.userSkin || 'red') });
         }
-        // this.userMovementAmt = [0, 0]
 
         if (this.userPos[1] > activeCeiling - 0.1){
             this.userPos[1] = activeCeiling - 0.1
@@ -912,11 +897,13 @@ export class Main_Demo extends Simulation {
         )
 
         for (const piece of mapComponents) { // Draw wall obstacles and the steps
+            const scale = [...piece.scale]
+            const translate = [...piece.translate]
             this.shapes.cube.draw(
                 context, program_state,
-                Mat4.translation(...piece.translate)
+                Mat4.translation(...translate)
                     .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
-                    .times(Mat4.scale(...piece.scale)),
+                    .times(Mat4.scale(...scale)),
                 // shadow_pass ? this.floor : this.pure
                 shadow_pass ? this.floor : this.pure
             )
