@@ -5,9 +5,44 @@ import (
 	"fmt"
 	"github.com/emmettlsc/Snowball-Showdown/internal/game"
 	"github.com/google/uuid"
-	"log"
+	"sort"
 	"strings"
 )
+
+type Leaderboard struct {
+	Scores map[string]int // Maps player ID to score
+}
+
+func (lb *Leaderboard) GetSortedScores() []PlayerScore {
+	// Convert the map to a slice
+	var scores []PlayerScore
+	for id, score := range lb.Scores {
+		scores = append(scores, PlayerScore{ID: id, Score: score})
+	}
+
+	// Sort the slice
+	sort.Slice(scores, func(i, j int) bool {
+		return scores[i].Score > scores[j].Score // Sort in descending order
+	})
+
+	return scores
+}
+
+type PlayerScore struct {
+	ID    string
+	Score int
+}
+
+func NewLeaderboard() *Leaderboard {
+	return &Leaderboard{
+		Scores: make(map[string]int),
+	}
+}
+
+// Method to update a player's score
+func (lb *Leaderboard) UpdateScore(playerID string, points int) {
+	lb.Scores[playerID] += points
+}
 
 type Hub struct {
 	// Registered clients.
@@ -23,10 +58,12 @@ type Hub struct {
 	unregister chan *Client
 
 	gameState *game.GameState
+
+	leaderboard *Leaderboard
 }
 
 func containsMultipleIDs(jsonStr string) bool {
-	count := strings.Count(jsonStr, `"id"`) // Count occurrences of `"id"`
+	count := strings.Count(jsonStr, `"id"`)
 	return count > 1
 }
 
@@ -41,6 +78,7 @@ func NewHub() *Hub {
 
 func (h *Hub) Run() {
 	h.gameState = game.NewGameState()
+	h.leaderboard = NewLeaderboard()
 	for {
 		select {
 		case client := <-h.register:
@@ -96,28 +134,42 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.broadcast:
-			//broadcast a message to all clients
-			if containsMultipleIDs(string(message)) {
-				log.Printf("Message contains multiple IDs: %s", string(message))
-			}
+			var jsonMap map[string]interface{}
+			json.Unmarshal(message, &jsonMap)
 
-			for client := range h.clients {
-				var jsonMap map[string]interface{}
-				json.Unmarshal([]byte(message), &jsonMap)
+			switch jsonMap["type"] {
+			case "player-kill":
+				// Extract the killer's ID and update the leaderboard
+				killerID := jsonMap["killerID"].(string) // Replace 'killerID' with the actual field name
+				h.leaderboard.UpdateScore(killerID, 1)   // Assuming each kill is worth 1 point
 
-				if jsonMap["type"] == "snowball-throw" {
-					//fmt.Println(jsonMap)
+				// Get the updated leaderboard and marshal it into JSON
+				updatedLeaderboard := h.leaderboard.GetSortedScores()
+				leaderboardMsg, _ := json.Marshal(struct {
+					Type        string        `json:"type"`
+					Leaderboard []PlayerScore `json:"leaderboard"`
+				}{
+					Type:        "leaderboard-update",
+					Leaderboard: updatedLeaderboard,
+				})
+
+				// Broadcast the updated leaderboard to all clients
+				for client := range h.clients {
+					client.send <- leaderboardMsg
 				}
 
-				if client.ID != jsonMap["id"] { //only send to other clients
-					select {
-					case client.send <- message:
-					default:
-						close(client.send)
-						delete(h.clients, client)
+			default:
+				// Broadcast other types of messages to all clients except the sender
+				for client := range h.clients {
+					if client.ID != jsonMap["id"] {
+						select {
+						case client.send <- message:
+						default:
+							close(client.send)
+							delete(h.clients, client)
+						}
 					}
 				}
-
 			}
 		}
 	}
