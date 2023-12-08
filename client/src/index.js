@@ -8,6 +8,7 @@ import { mapComponents, genRandomStartingPos, genRandomPowerupPos } from './map.
 import { checkMapComponentCollisions } from './collisions.js';
 import { CONST } from './constants.js'
 import {Test_Data} from './materials.js'
+import {Buffered_Texture, Shadow_Textured_Phong_Shader, Depth_Texture_Shader_2D, Color_Phong_Shader, LIGHT_DEPTH_TEX_SIZE} from './shadowshaders.js'
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
 
@@ -89,9 +90,9 @@ export class Simulation extends Scene {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
         }
 
-        for(let s of this.snowflakes) {
-            s.shape.draw(context, program_state, s.drawn_location, s.material);
-        }
+        // for(let s of this.snowflakes) { // Turn off snowflakes for testing shadows
+        //     s.shape.draw(context, program_state, s.drawn_location, s.material);
+        // }
 
     }
 
@@ -152,6 +153,7 @@ export class Main_Demo extends Simulation {
 
         let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
+        // let defaultMoveSpeed = vec3(10, 10, 10); // NOTE: made this faster for testing purposes
         this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
         this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed); //1 = fireRate
 
@@ -189,6 +191,37 @@ export class Main_Demo extends Simulation {
             this.shadowMode = !this.shadowMode 
             sbtn.innerText = this.shadowMode ? 'Shadow mode: on' : 'Shadow mode: off'
         })
+
+        // Initialize textures for shadows
+        // For the teapot
+        this.stars = new Material(new Shadow_Textured_Phong_Shader(1), {
+            color: color(.5, .5, .5, 1),
+            ambient: .4, diffusivity: .5, specularity: .5,
+            color_texture: new Texture("assets/stars.png"),
+            light_depth_texture: null
+
+        });
+        // For the floor or other plain objects
+        this.floor = new Material(new Shadow_Textured_Phong_Shader(1), {
+            color: color(1, 1, 1, 1), ambient: .3, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
+            color_texture: null,
+            light_depth_texture: null
+        })
+        // For the first pass
+        this.pure = new Material(new Color_Phong_Shader(), {
+        })
+        // For light source
+        this.light_src = new Material(new defs.Phong_Shader(), {
+            color: color(1, 1, 1, 1), ambient: 1, diffusivity: 0, specularity: 0
+        });
+        // For depth texture display
+        this.depth_tex =  new Material(new Depth_Texture_Shader_2D(), {
+            color: color(0, 0, .0, 1),
+            ambient: 1, diffusivity: 0, specularity: 0, texture: null
+        });
+
+        // To make sure texture initialization only does once
+        this.init_ok = false;
     }
 
     initWebSocket() {
@@ -533,24 +566,24 @@ export class Main_Demo extends Simulation {
         }
         this.bodies = this.bodies.filter(b => b.center.norm() < 200)
         // Add snowflakes each frame
-        for(let i = 0; i < 3; i++) {
-            //TODO: only spawn snowflakes within the user's field of view
-            let snowflakeLocation = Mat4.identity();
-            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
-
-            this.snowflakes.push(
-                new Body(
-                    this.data.shapes.snowflake,
-                    this.materials.snowflakeMtl.override({localTime: 0.0}),
-                    vec3(0.3, 0.3, 0.3),
-                ).emplace(
-                    snowflakeLocation,
-                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
-                    0
-                )
-            )
-
-        }
+        // for(let i = 0; i < 3; i++) { // Turn off snowflakes while testing shadows
+        //     //TODO: only spawn snowflakes within the user's field of view
+        //     let snowflakeLocation = Mat4.identity();
+        //     snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+        //
+        //     this.snowflakes.push(
+        //         new Body(
+        //             this.data.shapes.snowflake,
+        //             this.materials.snowflakeMtl.override({localTime: 0.0}),
+        //             vec3(0.3, 0.3, 0.3),
+        //         ).emplace(
+        //             snowflakeLocation,
+        //             vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+        //             0
+        //         )
+        //     )
+        //
+        // }
 
     }
 
@@ -560,50 +593,123 @@ export class Main_Demo extends Simulation {
 
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
-            program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix).
+            // program_state.set_camera(Mat4.translation(0, 0, -50));    // Locate the camera here (inverted matrix). // UNCOMMENT THIS AFTER TESTING SHADOWS
             // this.children.push(new defs.Program_State_Viewer());
+
+            program_state.set_camera(Mat4.look_at( // ONLY FOR TESTING SHADOWS
+                vec3(0, 12, 12),
+                vec3(0, 2, 0),
+                vec3(0, 1, 0)
+            )); // Locate the camera here
         }
         program_state.projection_transform = Mat4.perspective(
             this.userZoom ? Math.PI / 8 : 0.33 * Math.PI, 
             context.width / context.height, 
             1, 500
         );
-        program_state.lights = [
-            // new Light(vec4(0, -100, 0, 1), color(0, 0, 1, 1), 10000),
-            // new Light(vec4(0, 160, 0, 1), color(1, 1, 1, 1), 100000)
-        ];
-        // Draw the ground
-        this.shapes.square.draw(
-            context, program_state, 
-            Mat4.translation(0, -2, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 1)),
-            this.materials.snowgroundMtl
-        )
-        this.shapes.square.draw(
-            context, program_state, 
-            Mat4.translation(0, -20, 0)
-                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 1)),
-            this.materials.fullGround
-        )
-        this.shapes.ball.draw(
-            context, program_state,
-            Mat4.translation(0, 0, 0)
-                .times(Mat4.rotation(0, 1, 0, 0))
-                .times(Mat4.scale(200, 200, 200)),
-            this.materials.backgroundOne
-        )
 
-        for (const piece of mapComponents) {
-            this.shapes.cube.draw(
-                context, program_state,
-                Mat4.translation(...piece.translate)
-                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
-                    .times(Mat4.scale(...piece.scale)),
-                piece.rotation[0] ? this.materials.mapFloorMtl : this.materials.wallMtl
-            )
+        // For shadows
+        const gl = context.context;
+        if (!this.init_ok) {
+            const ext = gl.getExtension('WEBGL_depth_texture'); // Need WebGL's depth texture extension to be able to render shadows
+            if (!ext) {
+                return alert('need WEBGL_depth_texture');  // eslint-disable-line
+            }
+            this.texture_buffer_init(gl);
+
+            this.init_ok = true;
         }
+
+
+        // The position of the light
+        this.light_position = Mat4.rotation(0, 0, 1, 0).times(vec4(3, 10, 0, 1));
+        // The color of the light
+        this.light_color = color(
+            1,
+            0,
+            0,
+            1
+        );
+
+        // This is a rough target of the light.
+        // Although the light is point light, we need a target to set the POV of the light
+        this.light_view_target = vec4(0, 0, 0, 1);
+        this.light_field_of_view = 160 * Math.PI / 180; // 160 degrees arbitrarily
+        // this.light_field_of_view = 2 * Math.PI ; // 360 degrees
+
+        program_state.lights = [new Light(this.light_position, this.light_color, 100000)];
+
+        // Render shadows
+        // Step 1: set the perspective and camera to the POV of light
+        const light_view_mat = Mat4.look_at(
+            vec3(this.light_position[0], this.light_position[1], this.light_position[2]),
+            vec3(this.light_view_target[0], this.light_view_target[1], this.light_view_target[2]),
+            vec3(0, 1, 0), // assume the light to target will have a up dir of +y, maybe need to change according to your case
+        );
+        const light_proj_mat = Mat4.perspective(this.light_field_of_view, 1, 0.5, 500);
+        // Bind the Depth Texture Buffer
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer); // Draw to the lightDepthFramebuffer instead of the framebuffer that's shown onscreen
+        gl.viewport(0, 0, this.lightDepthTextureSize, this.lightDepthTextureSize); // Viewport is the texture instead of the user's viewport
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // Prepare uniforms
+        program_state.light_view_mat = light_view_mat;
+        program_state.light_proj_mat = light_proj_mat;
+        program_state.light_tex_mat = light_proj_mat;
+        program_state.view_mat = light_view_mat;
+        program_state.projection_transform = light_proj_mat;
+        this.render_scene(context, program_state, false,false, false); // Do z-buffer algorithm from light's POV
+
+        // Step 2: unbind, draw to the canvas
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Don't draw to the lightDepthFrameBuffer, draw to the framebuffer that the user will see
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // Re-set the viewport to the user's viewport
+        program_state.view_mat = program_state.camera_inverse;
+        program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
+        this.render_scene(context, program_state, true,true, true); // Do the z-buffer algorithm from the eye's POV
+
+        // Step 3: display the depth texture (shows relative depths from the light, darker = closer to light)
+        this.data.shapes.square_2d.draw(context, program_state,
+            Mat4.translation(-.99, .08, 0).times(
+                Mat4.scale(0.5, 0.5 * gl.canvas.width / gl.canvas.height, 1)
+            ),
+            this.depth_tex.override({texture: this.lightDepthTexture})
+        );
+
+        // End shadows stuff
+
+
+
+        // // Draw the ground
+        // this.shapes.square.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, -2, 0)
+        //         .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+        //         .times(Mat4.scale(50, 50, 1)),
+        //     this.materials.snowgroundMtl
+        // )
+        // this.shapes.square.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, -20, 0)
+        //         .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 1)),
+        //     this.materials.fullGround
+        // )
+        // this.shapes.ball.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, 0, 0)
+        //         .times(Mat4.rotation(0, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 200)),
+        //     this.materials.backgroundOne
+        // )
+        //
+        // for (const piece of mapComponents) {
+        //     this.shapes.cube.draw(
+        //         context, program_state,
+        //         Mat4.translation(...piece.translate)
+        //             .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+        //             .times(Mat4.scale(...piece.scale)),
+        //         this.materials.wallMtl
+        //     )
+        // }
 
         this.checkAllDownKeys()
         //draw all the players
@@ -727,5 +833,154 @@ export class Main_Demo extends Simulation {
         program_state.camera_transform.pre_multiply(Mat4.translation(...this.userPos));
         program_state.camera_inverse.post_multiply(Mat4.translation(...this.userPos.map(v => -v)));
         this.camera_transform = program_state.camera_transform
+    }
+
+
+
+    // Functions to implement shadows
+
+    render_scene(context, program_state, shadow_pass, draw_light_source=false, draw_shadow=false) {
+        // shadow_pass: true if this is the second pass that draw the shadow.
+        // draw_light_source: true if we want to draw the light source.
+        // draw_shadow: true if we want to draw the shadow
+
+        let light_position = this.light_position;
+        let light_color = this.light_color;
+        const t = program_state.animation_time;
+
+        program_state.draw_shadow = draw_shadow;
+
+        if (draw_light_source && shadow_pass) {
+            this.shapes.sphere.draw(context, program_state,
+                Mat4.translation(light_position[0], light_position[1], light_position[2]).times(Mat4.scale(.5,.5,.5)),
+                this.light_src.override({color: light_color}));
+        }
+
+        // for (let i of [-1, 1]) { // Spin the 3D model shapes as well.
+        //     const model_transform = Mat4.translation(2 * i, 3, 0)
+        //         .times(Mat4.rotation(t / 1000, -1, 2, 0))
+        //         .times(Mat4.rotation(-Math.PI / 2, 1, 0, 0));
+        //     this.shapes.teapot.draw(context, program_state, model_transform, shadow_pass? this.stars : this.pure);
+        // }
+
+
+        // Draw the ground
+        this.shapes.cube.draw(
+            context, program_state,
+            Mat4.translation(0, -2, 0)
+                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                .times(Mat4.scale(50, 50, 1)),
+            shadow_pass ? this.floor: this.pure
+        )
+        this.shapes.cube.draw(
+            context, program_state,
+            Mat4.translation(0, -20, 0)
+                .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
+                .times(Mat4.scale(200, 200, 1)),
+            shadow_pass ? this.floor : this.pure
+        )
+        // this.shapes.ball.draw(
+        //     context, program_state,
+        //     Mat4.translation(0, 0, 0)
+        //         .times(Mat4.rotation(0, 1, 0, 0))
+        //         .times(Mat4.scale(200, 200, 200)),
+        //     shadow_pass ? this.floor : this.pure
+        // )
+
+        for (const piece of mapComponents) {
+            this.shapes.cube.draw(
+                context, program_state,
+                Mat4.translation(...piece.translate)
+                    .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
+                    .times(Mat4.scale(...piece.scale)),
+                shadow_pass ? this.floor : this.pure
+            )
+        }
+
+
+        // Draw objects from demo
+        // let model_trans_floor = Mat4.scale(8, 0.1, 5);
+        // let model_trans_ball_0 = Mat4.translation(0, 1, 0);
+        // let model_trans_ball_1 = Mat4.translation(5, 1, 0);
+        // let model_trans_ball_2 = Mat4.translation(-5, 1, 0);
+        // let model_trans_ball_3 = Mat4.translation(0, 1, 3);
+        // let model_trans_ball_4 = Mat4.translation(0, 1, -3);
+        // let model_trans_wall_1 = Mat4.translation(-8, 2 - 0.1, 0).times(Mat4.scale(0.33, 2, 5));
+        // let model_trans_wall_2 = Mat4.translation(+8, 2 - 0.1, 0).times(Mat4.scale(0.33, 2, 5));
+        // let model_trans_wall_3 = Mat4.translation(0, 2 - 0.1, -5).times(Mat4.scale(8, 2, 0.33));
+        // this.shapes.cube.draw(context, program_state, model_trans_floor, shadow_pass? this.floor : this.pure);
+        // this.shapes.cube.draw(context, program_state, model_trans_wall_1, shadow_pass? this.floor : this.pure);
+        // this.shapes.cube.draw(context, program_state, model_trans_wall_2, shadow_pass? this.floor : this.pure);
+        // this.shapes.cube.draw(context, program_state, model_trans_wall_3, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_0, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_1, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_2, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_3, shadow_pass? this.floor : this.pure);
+        // this.shapes.sphere.draw(context, program_state, model_trans_ball_4, shadow_pass? this.floor : this.pure);
+    }
+
+    texture_buffer_init(gl) {
+        // Depth Texture
+        this.lightDepthTexture = gl.createTexture();
+        // Bind it to TinyGraphics
+        this.light_depth_texture = new Buffered_Texture(this.lightDepthTexture);
+        this.stars.light_depth_texture = this.light_depth_texture
+        this.floor.light_depth_texture = this.light_depth_texture
+
+        this.lightDepthTextureSize = LIGHT_DEPTH_TEX_SIZE;
+        gl.bindTexture(gl.TEXTURE_2D, this.lightDepthTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,      // target
+            0,                  // mip level
+            gl.DEPTH_COMPONENT, // internal format
+            this.lightDepthTextureSize,   // width
+            this.lightDepthTextureSize,   // height
+            0,                  // border
+            gl.DEPTH_COMPONENT, // format
+            gl.UNSIGNED_INT,    // type
+            null);              // data
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // Depth Texture Buffer
+        this.lightDepthFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,       // target
+            gl.DEPTH_ATTACHMENT,  // attachment point
+            gl.TEXTURE_2D,        // texture target
+            this.lightDepthTexture,         // texture
+            0);                   // mip level
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        // create a color texture of the same size as the depth texture
+        // see article (https://webglfundamentals.org/webgl/lessons/webgl-shadows.html) for why this is needed
+        this.unusedTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.unusedTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            this.lightDepthTextureSize,
+            this.lightDepthTextureSize,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // attach it to the framebuffer
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,        // target
+            gl.COLOR_ATTACHMENT0,  // attachment point
+            gl.TEXTURE_2D,         // texture target
+            this.unusedTexture,         // texture
+            0);                    // mip level
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 }
