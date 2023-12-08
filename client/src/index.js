@@ -92,9 +92,13 @@ export class Simulation extends Scene {
             b.shape.draw(context, program_state, b.drawn_location, b.material);
         }
 
-        for(let s of this.snowflakes) {
-            s.shape.draw(context, program_state, s.drawn_location, s.material);
+        if(this.use_snowflakes)
+        {
+            for(let s of this.snowflakes) {
+                s.shape.draw(context, program_state, s.drawn_location, s.material);
+            }
         }
+
 
     }
 
@@ -199,6 +203,7 @@ export class Main_Demo extends Simulation {
         this.init_ok = false;
 
         this.use_shadows = true; // Toggle to turn shadows on/off
+        this.use_snowflakes = true; // Toggle to turn snowflakes on/off
     }
 
     initWebSocket() {
@@ -522,25 +527,30 @@ export class Main_Demo extends Simulation {
 
         }
         this.bodies = this.bodies.filter(b => b.center.norm() < 200)
+
         // Add snowflakes each frame
-        for(let i = 0; i < 3; i++) {
-            //TODO: only spawn snowflakes within the user's field of view
-            let snowflakeLocation = Mat4.identity();
-            snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
+        if(this.use_snowflakes)
+        {
+            for(let i = 0; i < 3; i++) {
+                //TODO: only spawn snowflakes within the user's field of view
+                let snowflakeLocation = Mat4.identity();
+                snowflakeLocation = snowflakeLocation.times(Mat4.translation(Math.random() * 100 - 50, 50, Math.random() * 100 - 50));
 
-            this.snowflakes.push(
-                new Body(
-                    this.data.shapes.snowflake,
-                    this.materials.snowflakeMtl.override({localTime: 0.0}),
-                    vec3(0.3, 0.3, 0.3),
-                ).emplace(
-                    snowflakeLocation,
-                    vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
-                    0
+                this.snowflakes.push(
+                    new Body(
+                        this.data.shapes.snowflake,
+                        this.materials.snowflakeMtl.override({localTime: 0.0}),
+                        vec3(0.3, 0.3, 0.3),
+                    ).emplace(
+                        snowflakeLocation,
+                        vec3(0, -1, -1), // vec3(0, -1, 0).randomized(2).normalized().times(3),
+                        0
+                    )
                 )
-            )
 
+            }
         }
+
 
     }
 
