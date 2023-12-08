@@ -95,7 +95,7 @@ func (h *Hub) Run() {
 				json.Unmarshal([]byte(message), &jsonMap)
 
 				if jsonMap["type"] == "snowball-throw" {
-					fmt.Println(jsonMap)
+					//fmt.Println(jsonMap)
 				}
 
 				if client.ID != jsonMap["id"] { //only send to other clients
