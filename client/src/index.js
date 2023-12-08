@@ -309,7 +309,7 @@ export class Main_Demo extends Simulation {
             return
 
         const bgMusic = document.getElementById('background-music');
-        bgMusic.volume = 0.5; // Set the volume (0.0 to 1.0)
+        bgMusic.volume = 0.0; 
         bgMusic.play().catch(error => {
             console.error('Error playing background music:', error);
         });

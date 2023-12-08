@@ -75,23 +75,31 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				//the hub closed the channel
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
+			// Check if the message contains multiple IDs
+			if containsMultipleIDs(string(message)) {
+				fmt.Println("Warning: Message contains multiple IDs: %s", string(message))
+			}
+
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 			w.Write(message)
 
-			//add queued chat messages to the current websocket message
+			// Check and write queued chat messages
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(<-c.send)
+				queuedMessage := <-c.send
+				if containsMultipleIDs(string(queuedMessage)) {
+					fmt.Println("Warning: Queued message contains multiple IDs: %s", string(queuedMessage))
+				}
+				w.Write(queuedMessage)
 			}
 
 			if err := w.Close(); err != nil {
