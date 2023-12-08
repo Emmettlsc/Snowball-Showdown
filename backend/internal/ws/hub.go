@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/emmettlsc/Snowball-Showdown/internal/game"
 	"github.com/google/uuid"
+	"log"
+	"strings"
 )
 
 type Hub struct {
@@ -21,6 +23,11 @@ type Hub struct {
 	unregister chan *Client
 
 	gameState *game.GameState
+}
+
+func containsMultipleIDs(jsonStr string) bool {
+	count := strings.Count(jsonStr, `"id"`) // Count occurrences of `"id"`
+	return count > 1
 }
 
 func NewHub() *Hub {
@@ -90,6 +97,10 @@ func (h *Hub) Run() {
 
 		case message := <-h.broadcast:
 			//broadcast a message to all clients
+			if containsMultipleIDs(string(message)) {
+				log.Printf("Message contains multiple IDs: %s", string(message))
+			}
+
 			for client := range h.clients {
 				var jsonMap map[string]interface{}
 				json.Unmarshal([]byte(message), &jsonMap)
@@ -100,8 +111,8 @@ func (h *Hub) Run() {
 
 				if client.ID != jsonMap["id"] { //only send to other clients
 					select {
-					case client.send <- message: //this just sends the msg
-					default: //on fail remove client
+					case client.send <- message:
+					default:
 						close(client.send)
 						delete(h.clients, client)
 					}
