@@ -1,22 +1,23 @@
-import * as CONST from './constants.js'
+import { CONST } from './constants.js'
 import { mapComponents } from "./map.js";
 
+const gapToWall = 1
 export const checkMapComponentCollisions = (posArray, velocityArray = null, isSnowball = false) => {
   let activeGround = CONST.MIN_Y
   let activeCeiling = 10000
   let collision = false
+  const yAdjust = isSnowball ? 0 : 2
 
   for (const wall of mapComponents) {
     // Extracting wall properties
-    const PLAYER_WIDTH = 3
     const { translate, rotation, roationAngle, scale } = wall;
 
     if (rotation[2] === 1) {
         const minX = (translate[0] - scale[1])
         const maxX = (translate[0] + scale[1])
-        const minZ = (translate[2] - scale[2]) - PLAYER_WIDTH / 2
-        const maxZ = (translate[2] + scale[2]) + PLAYER_WIDTH / 2
-        const maxY = (translate[1] + scale[0])
+        const minZ = (translate[2] - scale[2]) - gapToWall
+        const maxZ = (translate[2] + scale[2]) + gapToWall
+        const maxY = (translate[1] + scale[0]) + yAdjust
         if (posArray[0] > minX && posArray[0] < maxX) {
             if (posArray[2] > minZ && posArray[2] < maxZ && posArray[1] < maxY){
                 if (isSnowball) {
@@ -31,11 +32,11 @@ export const checkMapComponentCollisions = (posArray, velocityArray = null, isSn
         }
     }
     else if (rotation[1] === 1) {
-        const minX = (translate[0] - scale[2]) - PLAYER_WIDTH / 2
-        const maxX = (translate[0] + scale[2]) + PLAYER_WIDTH / 2
+        const minX = (translate[0] - scale[2]) - gapToWall
+        const maxX = (translate[0] + scale[2]) + gapToWall
         const minZ = (translate[2] - scale[0]) 
         const maxZ = (translate[2] + scale[0]) 
-        const maxY = (translate[1] + scale[1])
+        const maxY = (translate[1] + scale[1]) + yAdjust
         if (posArray[2] > minZ && posArray[2] < maxZ) {
             if (posArray[0] > minX && posArray[0] < maxX && posArray[1] < maxY) {
                 if (isSnowball) {

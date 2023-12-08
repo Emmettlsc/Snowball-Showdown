@@ -33,6 +33,8 @@ export class Test_Data {
         const shader = new defs.Fake_Bump_Map(1);
 
         this.materials = {
+            powerupMtlFire: new Material(shader, { ambient: 0.5, color: color(1, 0, 0, 1) }),
+            powerupMtlJump: new Material(shader, { ambient: 0.5, color: color(0, 1, 0, 1) }),
 
             snowballMtl: new Material(new defs.Phong_Shader(), {
                 color: color(1, 1, 1, 1),
@@ -48,6 +50,7 @@ export class Test_Data {
             snowballTexturedMtl: new Material(new defs.Textured_Phong(), { ambient: 0.7, texture: new Texture("assets/snow.jpg"), color: color(0.5, 0.5, 1, 1) }),
             snowgroundMtl:       new Material(new defs.Textured_Phong(), { ambient: 1.0, texture: new Texture("assets/snow.jpg")   }),
             wallMtl:             new Material(new defs.Textured_Phong(), { ambient: 0.3, texture: new Texture("assets/snow.jpg")   }),
+            mapFloorMtl:         new Material(new defs.Textured_Phong(), { ambient: 0.7, texture: new Texture("assets/snow.jpg")   }),
             playerMtl:           new Material(new defs.Textured_Phong(), { ambient: 0.5, texture: new Texture("assets/snow.jpg"), color: color(1, 0.5, 0.5, 1) }),
             fullGround:          new Material(new defs.Textured_Phong(), { ambient: 0.6, texture: new Texture("assets/snow.jpg"), color: color(0.6, 0.6, 1, 1) }),
             backgroundOne:       new Material(new defs.Textured_Phong(), { ambient: 1,   texture: new Texture("assets/a1_c2.png")   }),

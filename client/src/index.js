@@ -4,9 +4,9 @@ import {Snowball} from './snowball.js'
 import {Player} from "./player.js";
 import {Particle_Shader} from "./particleshader.js";
 import { Shape_From_File } from './shapefromfile.js';
-import { mapComponents, genRandomStartingPos } from './map.js';
+import { mapComponents, genRandomStartingPos, genRandomPowerupPos } from './map.js';
 import { checkMapComponentCollisions } from './collisions.js';
-import * as CONST from './constants.js'
+import { CONST } from './constants.js'
 import {Test_Data} from './materials.js'
 // Pull these names into this module's scope for convenience:
 const {vec3, unsafe3, vec4, color, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
@@ -118,7 +118,6 @@ export class Main_Demo extends Simulation {
         this.shapes.cube = new defs.Cube();
         // this.shapes.snowman = new Shape_From_File("assets/snowman.obj");
         this.shapes.snowman = new Shape_From_File("assets/snow.obj");
-        this.shapes.teapot = new Shape_From_File("assets/teapot.obj");
         const shader = new defs.Fake_Bump_Map(1);
 
         this.materials = Object.assign({}, this.data.materials);
@@ -152,13 +151,35 @@ export class Main_Demo extends Simulation {
         let defaultFireSpeed= vec3(0, 6, 70); //deprecated
         let defaultMoveSpeed = vec3(2, 1, 1);
         this.playerId = `P${Math.floor(Math.random() * 9000 + 1000)}` //P1000 - P9999
-        this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed);
+        this.player = new Player(this.playerId, defaultMoveSpeed, 1, defaultFireSpeed); //1 = fireRate
 
         this.chargeTime = 0.0; // How long the user has been charging a snowball shot for
         this.charging = false;
 
         // Initialize snowflakes to create snowfall effect
         this.snowflakes = [];
+
+        //powerups
+        this.powerupPos = null // null | [x, y, z]
+        this.powerupType = 0 // 0: none, 1: firerate, 2: jump
+        this.activePowerup = 0 //0: none, 1: firerate: 2: jump
+
+        //menu
+        const slider = document.getElementById("slider");
+        slider.addEventListener("input", function() {
+            const sliderValue = slider.value;
+            document.getElementById('slider-label').innerText = `Sensitivity: ${sliderValue}`
+            CONST.USER_ROTATION_SPEED_X = sliderValue * 2 * 0.003
+            CONST.USER_ROTATION_SPEED_Y = sliderValue * 2 * 0.003
+        });
+        const skinPicker = document.getElementById('skin-picker')
+        skinPicker.addEventListener('click', (e) => {
+            const value = e.target.getAttribute('value')
+            if (value) {
+                this.userSkin = value
+                document.getElementById('skin-text').style.color = value
+            }
+        })
     }
 
     initWebSocket() {
@@ -212,7 +233,6 @@ export class Main_Demo extends Simulation {
             const userDirection = [data.usr_dir1, data.usr_dir2, data.usr_dir3]
 
             this.requestThrowSnowball = false
-            const chargeAmount = data.chargeAmount
             const snowballVelocity = vec3(data.vx, data.vy, data.vz)
             
             this.bodies.push(
@@ -260,15 +280,19 @@ export class Main_Demo extends Simulation {
     }
 
     handleKeydown(e) {
-        if (e.key === 'p') {
-            const canvas = document.getElementsByTagName('canvas')?.[0]
-            canvas.requestFullscreen()
-        }
+        // if (e.key === 'p') {
+        //     const canvas = document.getElementsByTagName('canvas')?.[0]
+        //     canvas.requestFullscreen()
+        // }
         if (e.key === 'e') {
             this.userZoom = !this.userZoom
         }
-        if (e.key === 'Escape')
+        if (e.key === 'q' || e.key === 'Escape') {
             this.moveActive = false
+            document.exitPointerLock()
+            console.log(this.userPos)
+            document.getElementsByClassName('menu-bg')[0].style.opacity = 1;
+        }
         if (['w', 'a', 's', 'd', ' '].includes(e.key))
             this.downKeys[e.key] = true
     }
@@ -280,6 +304,10 @@ export class Main_Demo extends Simulation {
     }
 
     handleMousedown(e) {
+        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
+            return
+
+        document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
         e.target?.requestPointerLock()
         this.moveActive = true
 
@@ -290,6 +318,9 @@ export class Main_Demo extends Simulation {
     }
 
     handleMouseup(e) {
+        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
+            return
+
         this.charging = false
         this.requestThrowSnowball = true
         document.getElementById('chargebar').style.opacity = 0
@@ -303,6 +334,9 @@ export class Main_Demo extends Simulation {
     }
 
     checkAllDownKeys() {
+        if (!this.moveActive)
+            return this.userMovementAmt = [0, 0]
+
         if (this.downKeys['w'] || this.downKeys['s'])
             this.userMovementAmt[1] = (this.downKeys['w'] ? 1 : -1)
         else 
@@ -357,7 +391,7 @@ export class Main_Demo extends Simulation {
     update_state(dt) {
         if (this.requestThrowSnowball && this.player.canFire()) {
             if (false) { //for map creation only
-                const newWall = { translate: [Math.round(this.userPos[0]), 0, Math.round(this.userPos[2])],  rotation: [0, 1, 0], roationAngle: Math.PI / 2, scale: [3, 2, 0.1] }
+                const newWall = { translate: [Math.round(this.userPos[0]), 0, Math.round(this.userPos[2])],  rotation: [0, 0, 1], roationAngle: Math.PI / 2, scale: [2, 3, 0.1] }
                 mapComponents.push(newWall)
                 if (!window.items)
                     window.items = []
@@ -527,7 +561,7 @@ export class Main_Demo extends Simulation {
             context, program_state, 
             Mat4.translation(0, -2, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(50, 50, 1)),
+                .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 1)),
             this.materials.snowgroundMtl
         )
         this.shapes.square.draw(
@@ -551,7 +585,7 @@ export class Main_Demo extends Simulation {
                 Mat4.translation(...piece.translate)
                     .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
                     .times(Mat4.scale(...piece.scale)),
-                this.materials.wallMtl
+                piece.rotation[0] ? this.materials.mapFloorMtl : this.materials.wallMtl
             )
         }
 
@@ -624,6 +658,44 @@ export class Main_Demo extends Simulation {
         if (this.userPos[1] > activeCeiling - 0.1){
             this.userPos[1] = activeCeiling - 0.1
             this.userVel[1] = 0
+        }
+
+        if (this.powerupPos) {
+            if (Math.sqrt((this.userPos[0] - this.powerupPos[0])**2 + (this.userPos[1] - this.powerupPos[1])**2 + (this.userPos[2] - this.powerupPos[2])**2 ) < 2) {
+                this.powerupPos = null
+                this.activePowerup = this.powerupType
+                this.powerupType = 0
+                if (this.activePowerup === 1) {
+                    this.player.setFireRate(3)
+                    setTimeout(() => {
+                        this.activePowerup = 0;
+                        this.player.setFireRate(1)
+                    }, CONST.POWERUP_TIME)
+                }
+                else {
+                    CONST.USER_JUMP_VEL = 0.4
+                    setTimeout(() => {
+                        this.activePowerup = 0;
+                        CONST.USER_JUMP_VEL = 0.2
+                    }, CONST.POWERUP_TIME)
+                }
+            }
+        }
+        const scope = document.getElementById('scope')
+        scope.style.borderWidth = this.activePowerup >= 1  ? '4px' : ''
+        scope.style.borderColor = this.activePowerup === 2 ? 'green' : ''
+        //draw powerups
+        if (this.powerupPos)
+            this.shapes.cube.draw(
+                context, program_state,
+                Mat4.translation(...this.powerupPos)
+                    .times(Mat4.scale(1, 1, 1))
+                    .times(Mat4.rotation(program_state.animation_time * 0.001, 0, 1, 0)),
+                this.powerupType === 1 ? this.materials.powerupMtlFire : this.materials.powerupMtlJump
+            )
+        else if (!this.activePowerup) {
+            this.powerupType = Math.random() < 0.5 ? 1 : 2
+            this.powerupPos = genRandomPowerupPos()
         }
 
         // if (this.chargeTime > 1){ 

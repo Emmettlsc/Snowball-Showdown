@@ -26,7 +26,67 @@ export const mapComponents = [
   { translate: [-47, 10, 47],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [3, 3, 0.1] },
   { translate: [47,  0,   0],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
   { translate: [47,  1, -10],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
+  {"translate":[53,0,-10],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[41,0,-10],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[47,0,-13],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,6,0.1]},
   { translate: [47,  2, -20],    rotation: [1, 0, 0], roationAngle: Math.PI / 2, scale: [6, 3, 0.1] },
+  {"translate":[53,0,-20],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,3,0.1]},
+  {"translate":[41,0,-20],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,3,0.1]},
+  {"translate":[47,0,-23],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[3,6,0.1]},
+
+  //outer walls (parallel)
+  {"translate":[48,0,48],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[75,0,84],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[29,0,78],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-4,0,73],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-23,0,70],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-63,0,90],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-87,0,67],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-83,0,28],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-86,0,3],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-95,0,-49],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-78,0,-80],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-47,0,-81],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-17,0,-81],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[3,0,-86],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[60,0,-72],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[38,0,-63],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[6,0,-57],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-36,0,-63],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-70,0,-25],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[48,0,-91],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[82,0,-29],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[67,0,17],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[92,0,64],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[78,0,54],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[61,0,-40],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[83,0,-81],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-74,0,-45],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-61,0,56],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[38,0,65],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-47,0,81],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[-60,0,17],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[88,0,-7],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+  {"translate":[84,0,7],"rotation":[0,1,0],"roationAngle":1.5707963267948966,"scale":[3,2,0.1]},
+
+  //outer walls (perpendicular)
+  {"translate":[48,0,-48],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[72,0,-82],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[89,0,-34],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[72,0,13],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[66,0,53],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[55,0,80],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[33,0,86],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-9,0,90],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[17,0,58],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-79,0,83],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-94,0,28],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-85,0,-56],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-97,0,-85],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-87,0,-84],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-64,0,-56],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[-78,0,55],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
+  {"translate":[87,0,-60],"rotation":[0,0,1],"roationAngle":1.5707963267948966,"scale":[2,3,0.1]},
 
   // //left route
   //   //stairs
@@ -55,8 +115,26 @@ export const genRandomStartingPos = () => {
     [-48, 0,  48],
     [-48, 12,  48],
     [-48, 0, -48],
-    [48 , 0, -48],
+    [48 , 0, -70],
     [48 , 0,  48],
   ]
-  return positions[Math.floor(Math.random() * positions.length)]
+  const pos = positions[Math.floor(Math.random() * positions.length)]
+  return pos
+}
+
+export const genRandomPowerupPos = () => {
+  const positions = [
+    [47, 5, -20],
+    [-95, 1,  90],
+    [-90, 1,  0 ],
+    [-95, 1, -95],
+    [0,   1, -95],
+    [40,  1, -85],
+    [90,  1, -90],
+    [90,  1, -40],
+    [85,  1, 65 ],
+    [5,   1, 65 ]
+  ]
+  const pos = positions[Math.floor(Math.random() * positions.length)]
+  return pos
 }

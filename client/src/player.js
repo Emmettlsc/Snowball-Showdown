@@ -57,6 +57,10 @@ export class Player {
         this.#moveSpeed = newMoveSpeed;
     }
 
+    setFireRate(newFireRate) {
+        this.#fireRate = newFireRate
+    }
+    
     getFireRate() {
         return this.#fireRate;
     }
