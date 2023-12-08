@@ -174,7 +174,6 @@ export class Main_Demo extends Simulation {
         this.powerupType = 0 // 0: none, 1: firerate, 2: jump
         this.activePowerup = 0 //0: none, 1: firerate: 2: jump
 
-        this.shadowMode = false
 
         //menu
         const slider = document.getElementById("slider");
@@ -194,8 +193,14 @@ export class Main_Demo extends Simulation {
         })
         const sbtn = document.getElementById('shadow-btn')
         sbtn.addEventListener('click', e => {
-            this.shadowMode = !this.shadowMode 
-            sbtn.innerText = this.shadowMode ? 'Shadow mode: on' : 'Shadow mode: off'
+            this.use_shadows = !this.use_shadows 
+            sbtn.innerText = this.use_shadows ? 'Shadow mode: on' : 'Shadow mode: off'
+        })
+        const sfbtn = document.getElementById('snowflake-btn')
+        sfbtn.addEventListener('click', e => {
+            console.log(this.use_snowflakes)
+            this.use_snowflakes = !this.use_snowflakes 
+            sfbtn.innerText = this.use_snowflakes ? 'Snowflakes: on' : 'Snowflakes: off'
         })
 
         // Initialize textures for shadows
@@ -557,7 +562,7 @@ export class Main_Demo extends Simulation {
 
         }
 
-        console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
+        // console.log("There are " + this.snowflakes.length + " snowflakes in the scene");
         for(let i = 0; i < this.snowflakes.length; i++) {
 
             let s = this.snowflakes[i];
@@ -638,14 +643,9 @@ export class Main_Demo extends Simulation {
 
 
         // The position of the light
-        this.light_position = Mat4.rotation(0, 0, 1, 0).times(vec4(1, 10, 0, 1));
+        this.light_position = Mat4.rotation(0, 0, 1, 0).times(vec4(1, 15, 0, 1));
         // The color of the light
-        this.light_color = color(
-            1,
-            1,
-            0,
-            1
-        );
+        this.light_color = color(1,1,0,1);
 
         // This is a rough target of the light.
         // Although the light is point light, we need a target to set the POV of the light
@@ -654,7 +654,7 @@ export class Main_Demo extends Simulation {
         this.light_field_of_view = 160 * Math.PI / 180; // 160 degrees arbitrarily
 
         // Adjust the last parameter to make the light bigger
-        program_state.lights = [new Light(this.light_position, this.light_color, 100000)];
+        program_state.lights = [new Light(this.light_position, this.light_color, this.use_shadows ? 10000 : 0)];
 
         if(this.use_shadows)
         {
@@ -682,7 +682,8 @@ export class Main_Demo extends Simulation {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Don't draw to the lightDepthFrameBuffer, draw to the framebuffer that the user will see
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // Re-set the viewport to the user's viewport
             program_state.view_mat = program_state.camera_inverse;
-            program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
+            // program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
+            program_state.projection_transform = Mat4.perspective(this.userZoom ? Math.PI / 8 : 0.33 * Math.PI, context.width / context.height, 1, 500);
             this.render_scene(context, program_state, true,true, true); // Do the z-buffer algorithm from the eye's POV
 
         }
@@ -695,7 +696,7 @@ export class Main_Demo extends Simulation {
                 context, program_state,
                 Mat4.translation(0, -2, 0)
                     .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                    .times(Mat4.scale(50, 50, 1)),
+                    .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 1)),
                 this.materials.snowgroundMtl
             )
             this.shapes.square.draw(
@@ -876,7 +877,7 @@ export class Main_Demo extends Simulation {
             context, program_state,
             Mat4.translation(0, -2, 0)
                 .times(Mat4.rotation(Math.PI / 2, 1, 0, 0))
-                .times(Mat4.scale(50, 50, 1)),
+                .times(Mat4.scale(CONST.MAX_MAP_X, CONST.MAX_MAP_Z, 0.1)),
             shadow_pass ? this.floor: this.pure
         )
         // this.shapes.cube.draw(
