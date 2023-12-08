@@ -10,19 +10,24 @@ import (
 )
 
 type Leaderboard struct {
-	Scores map[string]int // Maps player ID to score
+	Scores map[string]int
+	Names  map[string]string
 }
 
 func (lb *Leaderboard) GetSortedScores() []PlayerScore {
-	// Convert the map to a slice
+	// Convert the map to a slice with player names
 	var scores []PlayerScore
 	for id, score := range lb.Scores {
-		scores = append(scores, PlayerScore{ID: id, Score: score})
+		name, exists := lb.Names[id]
+		if !exists {
+			name = "unnamed" // Use "unnamed" if no name exists
+		}
+		scores = append(scores, PlayerScore{ID: id, Name: name, Score: score})
 	}
 
-	// Sort the slice
+	// Sort the slice in descending order of scores
 	sort.Slice(scores, func(i, j int) bool {
-		return scores[i].Score > scores[j].Score // Sort in descending order
+		return scores[i].Score > scores[j].Score
 	})
 
 	return scores
@@ -30,13 +35,19 @@ func (lb *Leaderboard) GetSortedScores() []PlayerScore {
 
 type PlayerScore struct {
 	ID    string
+	Name  string
 	Score int
 }
 
 func NewLeaderboard() *Leaderboard {
 	return &Leaderboard{
 		Scores: make(map[string]int),
+		Names:  make(map[string]string),
 	}
+}
+
+func (lb *Leaderboard) UpdateName(playerID, playerName string) {
+	lb.Names[playerID] = playerName
 }
 
 // Method to update a player's score
@@ -138,6 +149,10 @@ func (h *Hub) Run() {
 			json.Unmarshal(message, &jsonMap)
 
 			switch jsonMap["type"] {
+			case "player-name":
+				playerID := jsonMap["id"].(string)
+				playerName := jsonMap["name"].(string)
+				h.leaderboard.UpdateName(playerID, playerName)
 			case "player-kill":
 				// Extract the killer's ID and update the leaderboard
 				killerID := jsonMap["id"].(string)     // Replace 'killerID' with the actual field name
