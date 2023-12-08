@@ -118,6 +118,8 @@ export class Main_Demo extends Simulation {
         this.shapes.cube = new defs.Cube();
         // this.shapes.snowman = new Shape_From_File("assets/snowman.obj");
         this.shapes.snowman = new Shape_From_File("assets/snow.obj");
+        this.shapes.boots = new Shape_From_File("assets/boots.obj");
+        this.shapes.gun = new Shape_From_File("assets/gun.obj");
         const shader = new defs.Fake_Bump_Map(1);
 
         this.materials = Object.assign({}, this.data.materials);
@@ -686,11 +688,12 @@ export class Main_Demo extends Simulation {
         scope.style.borderColor = this.activePowerup === 2 ? 'green' : ''
         //draw powerups
         if (this.powerupPos)
-            this.shapes.cube.draw(
+            this.shapes[this.powerupType === 2 ? 'boots' : 'gun'].draw(
                 context, program_state,
                 Mat4.translation(...this.powerupPos)
                     .times(Mat4.scale(1, 1, 1))
-                    .times(Mat4.rotation(program_state.animation_time * 0.001, 0, 1, 0)),
+                    .times(Mat4.rotation(program_state.animation_time * 0.001, 0, 1, 0))
+                    .times(Mat4.rotation(this.powerupType === 3 ? 0 : -Math.PI / 2, 1, 0, 0)),
                 this.powerupType === 1 ? this.materials.powerupMtlFire : this.materials.powerupMtlJump
             )
         else if (!this.activePowerup) {
