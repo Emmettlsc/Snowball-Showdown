@@ -166,6 +166,8 @@ export class Main_Demo extends Simulation {
         this.powerupType = 0 // 0: none, 1: firerate, 2: jump
         this.activePowerup = 0 //0: none, 1: firerate: 2: jump
 
+        this.shadowMode = false
+
         //menu
         const slider = document.getElementById("slider");
         slider.addEventListener("input", function() {
@@ -181,6 +183,11 @@ export class Main_Demo extends Simulation {
                 this.userSkin = value
                 document.getElementById('skin-text').style.color = value
             }
+        })
+        const sbtn = document.getElementById('shadow-btn')
+        sbtn.addEventListener('click', e => {
+            this.shadowMode = !this.shadowMode 
+            sbtn.innerText = this.shadowMode ? 'Shadow mode: on' : 'Shadow mode: off'
         })
     }
 
@@ -226,7 +233,7 @@ export class Main_Demo extends Simulation {
             // Handle move event
             const id = data.id
             const position = { x: data.x, y: data.y, z: data.z, };
-            this.addOrUpdatePlayerMarker(id, position, data.rotation);
+            this.addOrUpdatePlayerMarker(id, position, data.rotation, data.skin);
         } else if (data.type === 'assignID') {
             this.id = data.id;
         } else if (data.type === 'playerDisconnected') {
@@ -263,7 +270,7 @@ export class Main_Demo extends Simulation {
         }
     }
 
-    addOrUpdatePlayerMarker(id, position, rotation) {
+    addOrUpdatePlayerMarker(id, position, rotation, skin) {
         if (id === this.id) {
             return;
         }
@@ -271,11 +278,12 @@ export class Main_Demo extends Simulation {
             const player = this.players.get(id);
             player.serverPos = position
             player.rotation = rotation
+            player.skin = skin
             // player.x = position.x;
             // player.y = position.y;
             // player.z = position.z;
         } else if (id) {
-            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation}//new Player(id, position.x, position.y, position.z);
+            const player = { x: position.x, y: position.y, z: position.z, serverPos: position , rotation: rotation, skin }//new Player(id, position.x, position.y, position.z);
             this.players.set(id, player);
         }
 
@@ -611,7 +619,7 @@ export class Main_Demo extends Simulation {
             this.shapes.snowman.draw(
                 context, program_state,
                 Mat4.translation(player.x, player.y, player.z).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(-player.rotation + 160, 0, 1, 0)),
-                this.materials.playerMtl
+                this.materials['playerMtl_' + (player.skin || 'red')]
             )
         })
 
@@ -659,7 +667,7 @@ export class Main_Demo extends Simulation {
         this.userPos[1] += this.userVel[1]
         if (Date.now() > this.socketTimeLastSent + 50) {
             this.socketTimeLastSent = Date.now()
-            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0] });
+            this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0], skin: (this.userSkin || 'red') });
         }
         // this.userMovementAmt = [0, 0]
 
@@ -674,7 +682,7 @@ export class Main_Demo extends Simulation {
                 this.activePowerup = this.powerupType
                 this.powerupType = 0
                 if (this.activePowerup === 1) {
-                    this.player.setFireRate(3)
+                    this.player.setFireRate(5)
                     setTimeout(() => {
                         this.activePowerup = 0;
                         this.player.setFireRate(1)
@@ -699,7 +707,7 @@ export class Main_Demo extends Simulation {
                 Mat4.translation(...this.powerupPos)
                     .times(Mat4.scale(1, 1, 1))
                     .times(Mat4.rotation(program_state.animation_time * 0.001, 0, 1, 0))
-                    .times(Mat4.rotation(this.powerupType === 3 ? 0 : -Math.PI / 2, 1, 0, 0)),
+                    .times(Mat4.rotation(-Math.PI / 2, 1, 0, 0)),
                 this.powerupType === 1 ? this.materials.powerupMtlFire : this.materials.powerupMtlJump
             )
         else if (!this.activePowerup) {
