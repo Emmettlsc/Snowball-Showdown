@@ -330,7 +330,7 @@ export class Main_Demo extends Simulation {
     
         topFive.forEach(player => {
             const listItem = document.createElement('li');
-            listItem.textContent = `Player ${player.ID}: ${player.Score}`;
+            listItem.textContent = `Player ${player.Name}: ${player.Score}`;
             leaderboardList.appendChild(listItem);
         });
     }
