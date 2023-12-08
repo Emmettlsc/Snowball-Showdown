@@ -242,7 +242,6 @@ export class Main_Demo extends Simulation {
 
     initWebSocket() {
         this.socketTimeLastSent = 0
-        // this.socket = new WebSocket('ws:localhost:8080/ws') 
         this.socket = new WebSocket('wss://snow.bazzled.com/ws') //new WebSocket('ws://184.72.14.50/ws');
 
         this.socket.onopen = () => {
@@ -271,7 +270,6 @@ export class Main_Demo extends Simulation {
 
     handleWebSocketMessage(event) {
         let data;
-        console.log("Raw message received:", event.data);
         try {
             data = JSON.parse(event.data);
         } catch  (e) {
@@ -369,7 +367,7 @@ export class Main_Demo extends Simulation {
             return
 
         const bgMusic = document.getElementById('background-music');
-        bgMusic.volume = 0.0; 
+        bgMusic.volume = 0.5; // Set the volume (0.0 to 1.0)
         bgMusic.play().catch(error => {
             console.error('Error playing background music:', error);
         });
@@ -788,7 +786,7 @@ export class Main_Demo extends Simulation {
         else 
             this.userVel[1] += 0.001 * -9.8 //use some animation time? look at simulation class.
         this.userPos[1] += this.userVel[1]
-        if (Date.now() > this.socketTimeLastSent + 50) {
+        if (Date.now() > this.socketTimeLastSent + CONST.WEBSOCKET_SEND_MIN_DELAY) {
             this.socketTimeLastSent = Date.now()
             this.sendPlayerAction({ id: this.id, type: 'move', x: this.userPos[0], y: this.userPos[1], z: this.userPos[2], rotation: this.cameraRotation[0], skin: (this.userSkin || 'red') });
         }
@@ -899,11 +897,13 @@ export class Main_Demo extends Simulation {
         )
 
         for (const piece of mapComponents) { // Draw wall obstacles and the steps
+            const scale = [...piece.scale]
+            const translate = [...piece.translate]
             this.shapes.cube.draw(
                 context, program_state,
-                Mat4.translation(...piece.translate)
+                Mat4.translation(...translate)
                     .times(Mat4.rotation(piece.roationAngle, ...piece.rotation))
-                    .times(Mat4.scale(...piece.scale)),
+                    .times(Mat4.scale(...scale)),
                 // shadow_pass ? this.floor : this.pure
                 shadow_pass ? this.floor : this.pure
             )

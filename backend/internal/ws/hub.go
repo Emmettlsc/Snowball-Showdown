@@ -101,6 +101,8 @@ func (h *Hub) Run() {
 				log.Printf("Message contains multiple IDs: %s", string(message))
 			}
 
+			fmt.Println(len(h.clients))
+
 			for client := range h.clients {
 				var jsonMap map[string]interface{}
 				json.Unmarshal([]byte(message), &jsonMap)
@@ -111,8 +113,8 @@ func (h *Hub) Run() {
 
 				if client.ID != jsonMap["id"] { //only send to other clients
 					select {
-					case client.send <- message: //this just sends the msg
-					default: //on fail remove client
+					case client.send <- message:
+					default:
 						close(client.send)
 						delete(h.clients, client)
 					}

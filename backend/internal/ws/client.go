@@ -80,13 +80,12 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			// Send the message in a separate WebSocket frame
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
 
-			// Handle additional queued messages separately
+			// handle additional queued messages separately
 			for len(c.send) > 0 {
 				queuedMessage := <-c.send
 				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
