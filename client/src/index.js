@@ -267,7 +267,7 @@ export class Main_Demo extends Simulation {
     }
 
     sendPlayerAction(action) {
-        if (this.socket.readyState === WebSocket.OPEN) {
+        if (this.socket.readyState === WebSocket.OPEN && !this.killCamActive) {
             this.socket.send(JSON.stringify(action));
         }
     }
