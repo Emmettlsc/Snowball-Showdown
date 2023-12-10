@@ -24,6 +24,20 @@ The game features several graphical enhancements to create an immersive and visu
 * Environment: The game features walls and platforms, adding complexity and strategy to gameplay.
 * Enemy Interpolation: Smooths player movement between server updates making game more fluid. 
 
+
+## Controls
+
+```wasd``` - movemend
+
+```space``` - jump
+
+```q``` - open menu
+
+```e``` - zoom in/out
+
+```left click``` -  fire snowball
+
+
 ## Web Server
 * Manages registration of connected players.
 * Maintains and records the game state.
