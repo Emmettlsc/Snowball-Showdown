@@ -246,7 +246,8 @@ export class Main_Demo extends Simulation {
 
     initWebSocket() {
         this.socketTimeLastSent = 0
-        this.socket = new WebSocket('wss://snow.bazzled.com/ws') //new WebSocket('ws://184.72.14.50/ws'); // this.socket = new WebSocket('ws://3.101.2.62/ws'); //
+        // this.socket = new WebSocket('wss://snow.bazzled.com/ws') //new WebSocket('ws://184.72.14.50/ws'); // this.socket = new WebSocket('ws://3.101.2.62/ws'); //
+        this.socket = new WebSocket('ws://localhost:8080/ws')
 
         this.socket.onopen = () => {
             console.log('WebSocket connection established');
@@ -326,8 +327,24 @@ export class Main_Demo extends Simulation {
             this.userPos = genRandomStartingPos()
             this.cameraRotation = [this.userPos[2] < 0 ? Math.PI : 0, 0]
             this.userVel = [0, 0, 0]
+        } else if (data.type === 'leaderboard-update') {
+        this.updateLeaderboard(data.leaderboard);
         }
     }
+
+
+    updateLeaderboard(leaderboardData) {
+        const leaderboardList = document.getElementById('leaderboard-list');
+        leaderboardList.innerHTML = ''; 
+        const topFive = leaderboardData.slice(0, 5);
+    
+        topFive.forEach(player => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `Player ${player.Name}: ${player.Score}`;
+            leaderboardList.appendChild(listItem);
+        });
+    }
+
 
     addOrUpdatePlayerMarker(id, position, rotation, skin) {
         if (id === this.id) {
@@ -370,32 +387,49 @@ export class Main_Demo extends Simulation {
     }
 
     handleMousedown(e) {
-        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
-            return
-
-        const bgMusic = document.getElementById('background-music');
-        bgMusic.volume = 0.5; // Set the volume (0.0 to 1.0)
-        bgMusic.play().catch(error => {
-            console.error('Error playing background music:', error);
-        });
-
-        document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
-        e.target?.requestPointerLock()
-        this.moveActive = true
-
-        this.downKeys['mouse'] = true
-
-        if(!this.charging)
-            this.charging = true;
+        if (!this.gameStarted) {
+            if (e.target.closest('.menu') && !e.target.closest('#start-col'))
+                return;
+    
+            const playerNameInput = document.getElementById('player-name');
+            const playerName = playerNameInput.value.trim();
+    
+            if (!playerName) {
+                playerNameInput.classList.add('input-error'); 
+                return;
+            } else {
+                playerNameInput.classList.remove('input-error'); 
+            }
+    
+            this.socket.send(JSON.stringify({ type: "player-name", name: playerName, id: this.id }));
+    
+            const bgMusic = document.getElementById('background-music');
+            bgMusic.volume = 0.5;
+            bgMusic.play().catch(error => {
+                console.error('Error playing background music:', error);
+            });
+    
+            document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
+            e.target?.requestPointerLock();
+            this.gameStarted = true; 
+        } else {
+            this.moveActive = true;
+            this.downKeys['mouse'] = true;
+            if (!this.charging)
+                this.charging = true;
+        }
     }
 
     handleMouseup(e) {
-        if (e.target.closest('.menu') && !e.target.closest('#start-col'))
-            return
+        if (!this.gameStarted) {
+            if (e.target.closest('.menu') && !e.target.closest('#start-col'))
+                return;
+        }
+    
+        this.charging = false;
+        this.requestThrowSnowball = true;
+        document.getElementById('chargebar').style.opacity = 0;
 
-        this.charging = false
-        this.requestThrowSnowball = true
-        document.getElementById('chargebar').style.opacity = 0
     }
 
     handleMousemove(e) {
