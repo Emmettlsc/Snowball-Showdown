@@ -247,7 +247,7 @@ export class Main_Demo extends Simulation {
     initWebSocket() {
         this.socketTimeLastSent = 0
         // this.socket = new WebSocket('wss://snow.bazzled.com/ws') //new WebSocket('ws://184.72.14.50/ws'); // this.socket = new WebSocket('ws://3.101.2.62/ws'); //
-        this.socket = new WebSocket('ws://localhost:8080/ws')
+        this.socket = new WebSocket('wss://snow.bazzled.com/ws')
 
         this.socket.onopen = () => {
             console.log('WebSocket connection established');
@@ -387,7 +387,6 @@ export class Main_Demo extends Simulation {
     }
 
     handleMousedown(e) {
-        if (!this.gameStarted) {
             if (e.target.closest('.menu') && !e.target.closest('#start-col'))
                 return;
     
@@ -412,12 +411,11 @@ export class Main_Demo extends Simulation {
             document.getElementsByClassName('menu-bg')[0].style.opacity = 0;
             e.target?.requestPointerLock();
             this.gameStarted = true; 
-        } else {
+            
             this.moveActive = true;
             this.downKeys['mouse'] = true;
             if (!this.charging)
                 this.charging = true;
-        }
     }
 
     handleMouseup(e) {
